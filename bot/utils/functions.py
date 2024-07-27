@@ -1,15 +1,19 @@
 import os as _os
 import pkgutil as _pkgutil
+import re as _re
+from typing import Any as _Any
+from typing import Dict as _Dict
 from typing import Iterator as _Iterator
+from typing import Optional as _Optional
+from typing import Sequence as _Sequence
+from typing import Union as _Union
 
 from discord.ext.commands import Context as _Context
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
-import re as _re
 
 from ..core.settings import settings as _settings
-from typing import Union as _Union , Dict as _Dict, Any as _Any, Sequence as _Sequence, Optional as _Optional
 
 
 def chunker(text, chunk_size: int) -> list:

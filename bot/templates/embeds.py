@@ -1,5 +1,6 @@
 from datetime import datetime as _datetime
 from typing import Any as _Any
+from typing import Sequence as _Sequence
 
 from discord import Color as _Color
 from discord import Embed as _Embed
@@ -43,3 +44,35 @@ class ErrorEmbed(_Embed):
                         *args, 
                         **kwgrs
                     )
+        
+class CommandsEmbed(_Embed):
+
+    def __init__(
+            self,
+            commands: _Sequence[_commands.Command],
+            title: str,
+            **kwrgs
+    ):
+        
+        base = "```diff\n+ {}\n```\n**Commands**: {}\n".format(
+            title,
+            len(commands)
+        )
+
+        for command in commands:
+            
+            text_to_add = "\n__**{}{}**__: *`{}`*".format(
+                f"{command.parent} " if command.parent else "",
+                command.name,
+                command.description if command.description else "No description yet!"
+            )
+
+            base+=text_to_add
+            
+
+        super().__init__(
+            timestamp=_datetime.now(),
+            color=_color,
+            description=base,
+            **kwrgs
+        )

@@ -1,4 +1,4 @@
-from typing import Any, Optional, Dict, Union
+from typing import Any, Dict, Optional, Union
 
 
 class Emojis:

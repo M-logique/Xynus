@@ -3,8 +3,8 @@ from typing import Any as _Any
 from discord import ButtonStyle as _ButtonStyle
 from discord import Interaction as _Interaction
 from discord.ui import Button as _Button
-from ..utils.config import Emojis
 
+from ..utils.config import Emojis
 from ..utils.functions import disable_all_items as _disable_all_items
 
 emojis = Emojis()

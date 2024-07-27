@@ -1,20 +1,21 @@
 from typing import Optional
 
+from aiohttp import ClientSession
 from discord import app_commands
+from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
 from bot.core import guilds
 from bot.core.client import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.embeds import SimpleEmbed
+from bot.templates.embeds import CommandsEmbed, SimpleEmbed
 from bot.templates.views import EmojisView, Pagination
-from bot.utils.functions import chunker, extract_emoji_info_from_text, remove_duplicates_preserve_order
-from aiohttp import ClientSession
-from discord.errors import HTTPException, Forbidden
 from bot.templates.wrappers import check_views
 from bot.utils.config import Emojis
-
+from bot.utils.functions import (chunker, extract_emoji_info_from_text,
+                                 remove_duplicates_preserve_order)
+from datetime import datetime
 
 _emojis = Emojis()
 
@@ -60,15 +61,15 @@ class Tools(Cog):
     
     @commands.hybrid_command(
         name="steal",
-        description="Will steal some emojis",
+        description="Steals specified emojis and adds them to the server",
         with_app_command=True,
         aliases=["addemojis"]
     )
     @app_commands.guilds(*guilds)
     @app_commands.describe(
-        emojis = "Emojis to steal",
-        force_add = "Will add emojis without showing the pagination (default: False)",
-        remove_duplicates = "Will remove duplicated emojis (default: True)"
+        emojis = "List of emojis to be added to the server",
+        force_add = "Adds emojis without displaying the pagination (default: False)",
+        remove_duplicates = "Removes any duplicate emojis before adding (default: True)"
     )
     @commands.has_permissions(
         manage_emojis_and_stickers = True
@@ -222,7 +223,7 @@ class Tools(Cog):
 
     @commands.hybrid_group(
         name="list",
-        description="Some commands to list stuff",
+        description="Commands to retrieve and display lists of information",
         with_app_command=True
     )
     @app_commands.guilds(*guilds)
@@ -230,15 +231,29 @@ class Tools(Cog):
         self,
         ctx: commands.Context
     ):
-        for command in self.list.commands():
 
-            print(command.name)
-        # await ctx.reply(self.list.commands)
+        
+        
+        embed = CommandsEmbed(
+            commands=self.list.commands,
+            title=self.list.description
+        )
+
+        embed.set_footer(
+            text="Invoked by {}".format(
+                ctx.author.display_name
+            ),
+            icon_url=ctx.author.avatar
+        )
+
+        return await ctx.reply(
+            embed=embed
+        )
 
 
     @list.command(
         name="bans",
-        description="Will show server banned members as a list",
+        description="Displays a list of banned members in the server",
         with_app_command=True
     )
     @app_commands.guilds(*guilds)
@@ -246,8 +261,8 @@ class Tools(Cog):
         ban_members = True,
     )
     @app_commands.describe(
-        ephemeral = "Will hide the bot's reply from others. (default: False)",
-        limit = "The number of bans to retrieve. (default: All)"
+        ephemeral = "Hide the bot's response from other users. (default: False)",
+        limit = "Number of bans to retrieve. (default: All)"
     )
     @check_views
     async def list_bans(
@@ -264,8 +279,8 @@ class Tools(Cog):
             return await ctx.reply("Didn't find any banned member in this server")
 
         bans = [
-            "**[`{}`]**: `{}` | `{}` ".format(
-                bans.index(entry),
+            "`[{}]`: `{}` - `{}` ".format(
+                bans.index(entry) + 1,
                 entry.user.name,
                 entry.user.id
             )
@@ -278,9 +293,6 @@ class Tools(Cog):
                 index: int
         ):
             chunks = chunker(bans, 10)
-            
-
-            
 
             embed = SimpleEmbed(
                 client=self.client,
@@ -318,5 +330,87 @@ class Tools(Cog):
 
 
         await pagination_view.navegate(ephemeral=ephemeral)
+    
+    @list.command(
+        name="mutes",
+        description="Displays a list of muted members in the server",
+        with_app_command=True
+    )
+    @app_commands.guilds(*guilds)
+    @commands.has_permissions(
+        ban_members = True,
+    )
+    @app_commands.describe(
+        ephemeral = "Hide the bot's response from other users. (default: False)"
+    )
+    @check_views
+    async def list_muted(
+        self,
+        ctx: commands.Context,
+        ephemeral: Optional[bool] = False
+    ):
+        
+        muted = [*filter(lambda x: x.timed_out_until is not None, [*ctx.guild.members])]
+
+
+        muted = [
+            "`[{}]`: `{}` - `{}` *expires <t:{}:R>*".format(
+                muted.index(entry) + 1,
+                entry.name,
+                entry.id,
+                int(entry.timed_out_until.timestamp())
+            )
+
+            for entry in muted
+        ]
+
+        if muted == []:
+
+            return await ctx.reply("Didn't find any muted member in this server")
+
+        
+
+        async def get_page(
+                index: int
+        ):
+            chunks = chunker(muted, 10)
+
+            embed = SimpleEmbed(
+                client=self.client,
+                description="\n".join(chunks[index]),
+                title="Muted members: {}".format(
+                    len(muted)
+                )
+            )
+
+            embed.set_footer(
+                text="Invoked by {}.".format(
+                    ctx.author.display_name
+                ),
+                icon_url=ctx.author.avatar
+            )
+
+            kwrgs = {
+                "embed": embed
+            }
+
+            return kwrgs, len(chunks)
+
+        pagination_view = Pagination(
+            ctx=ctx,
+            get_page=get_page
+        )
+
+        pagination_view.add_item(DeleteButton())
+
+
+        self.client.set_user_view(
+            user_id=ctx.author.id,
+            view=pagination_view
+        )
+
+
+        await pagination_view.navegate(ephemeral=ephemeral)
+    
 
 async def setup(c): await c.add_cog(Tools(c))

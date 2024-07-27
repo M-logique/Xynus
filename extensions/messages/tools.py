@@ -192,7 +192,8 @@ class Hello(Cog):
 
 
             emojis_view = EmojisView(get_page, ctx=ctx, emojis_dict=extracted_emojis)
-            emojis_view.add_item(QuitButton())
+            # emojis_view.add_item(QuitButton())
+            emojis_view.add_item(DeleteButton())
 
             return await emojis_view.navegate()
         

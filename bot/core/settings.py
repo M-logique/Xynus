@@ -16,18 +16,4 @@ class Settings(BaseSettings):
     GUILDS: List[int] = []
     DB_BACKUP_CHANNEL: int
 
-    CLIENT_ROLE_ID: int
-
-
-    PANEL_ADDRESS: str
-    PANEL_TYPE: str
-    HTTPS: Optional[bool] = False
-    SESSION_NAME: str
-    PANEL_USERNAME: str
-    PANEL_PASSWORD: str
-
-    TEST_INBOUND_ID: int
-    NORMAL_INBOUND_ID: int
-    LISTEN_IP: str
-
 settings = Settings()

@@ -1,12 +1,15 @@
 import os as _os
 import pkgutil as _pkgutil
 from typing import Iterator as _Iterator
-from uuid import uuid4 as _uuid4
 
 from discord.ext.commands import Context as _Context
 from discord.ui import View
+from yaml import SafeLoader as _SafeLoader
+from yaml import load as _load
+import re as _re
 
-from ..core.settings import settings
+from ..core.settings import settings as _settings
+from typing import Union as _Union , Dict as _Dict, Any as _Any, Sequence as _Sequence
 
 
 def chunker(text, chunk_size: int) -> list:
@@ -78,3 +81,46 @@ async def disable_all_items(
             )
         except: 
             pass
+
+def chunker(text, chunk_size: int):
+    length = len(text)
+    num = 0
+    chunks = []
+
+    while num < len(text):
+        chunks.append(text[num:length-(length-(chunk_size))+num:])
+        num+=chunk_size
+
+    return chunks
+
+def load_yaml(path: str) -> dict:
+    with open(path, 'r') as f:
+        data = _load(f, Loader=_SafeLoader)
+    
+    return data
+
+def extract_emoji_info_from_text(text: str) -> _Union[_Dict, _Any]:
+    pattern = r"<:(\w+):(\d+)>"
+    matches = _re.findall(pattern, text)
+    
+    extracted_info = []
+    for match in matches:
+        name = match[0]
+        id = match[1]
+        extracted_info.append({"name": name, "id": id})
+    
+    return extracted_info
+
+
+
+def remove_duplicates_preserve_order(
+        input_list: _Sequence[_Any]
+):
+    seen = []
+    output_list = []
+    for item in input_list:
+        if not item in seen:
+            seen.append(item)
+            output_list.append(item)
+    
+    return output_list

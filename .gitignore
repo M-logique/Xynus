@@ -9,6 +9,8 @@ test.json
 
 .VSCodeCounter
 
+data/*.db
+
 test.py
 *.session
 *.session-journal

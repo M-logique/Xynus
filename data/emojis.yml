@@ -7,3 +7,7 @@ pagination:
 
 global:
   trashcan: "<trashcan:1266505183651696793>"
+  checkmark: "<:white_checkmark:1266706867418038322>"
+  crossmark: "<:crossmark:1266707152416931893>"
+  exclamation: "❕"
+  hand: "<:Hand:1266706515989893211>"

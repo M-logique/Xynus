@@ -9,7 +9,7 @@ from yaml import load as _load
 import re as _re
 
 from ..core.settings import settings as _settings
-from typing import Union as _Union , Dict as _Dict, Any as _Any, Sequence as _Sequence
+from typing import Union as _Union , Dict as _Dict, Any as _Any, Sequence as _Sequence, Optional as _Optional
 
 
 def chunker(text, chunk_size: int) -> list:
@@ -79,7 +79,7 @@ async def disable_all_items(
             await view.message.edit(
                 view=view
             )
-        except: 
+        except:
             pass
 
 def chunker(text, chunk_size: int):

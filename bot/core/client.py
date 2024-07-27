@@ -3,6 +3,7 @@ from os import path
 
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
+from discord.ui import View as _View
 from discord import AllowedMentions as _AllowedMentions
 from discord import Intents as _Intents
 from discord import Object as _Object
@@ -30,7 +31,7 @@ class Client(_commands.Bot):
         prefix = settings.PREFIX
         strip_aftre_prefix = settings.STRIP_AFTER_PREFIX
 
-        
+        self.view_cache = {}
 
         super().__init__(command_prefix=_commands.when_mentioned_or(*prefix),
                          owner_ids=owner_ids,
@@ -65,21 +66,21 @@ class Client(_commands.Bot):
 
             self.logger.error("Failed to sync command tree: {}".format(err))
     
-    async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
-        if isinstance(error, _commands.CommandNotFound):
-            pass
-        elif isinstance(error, _commands.MissingPermissions):
-            text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)
-            await ctx.reply(embed=ErrorEmbed(text))
-        elif isinstance(error, _commands.CommandOnCooldown):
-            await ctx.reply(embed=ErrorEmbed(f'This command is on cooldown, you can use it in {round(error.retry_after, 2)}s'))
-        elif isinstance(error, _commands.NotOwner):
-            await ctx.reply(embed=ErrorEmbed("You are not owner"))
-        else: 
-            if len(str(error)) < 2000:
-                await ctx.reply(embed=ErrorEmbed(str(error)))
-            else:
-                await ctx.reply(embed=ErrorEmbed(str(error)[:2000:]))
+    # async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
+    #     if isinstance(error, _commands.CommandNotFound):
+    #         pass
+    #     elif isinstance(error, _commands.MissingPermissions):
+    #         text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)
+    #         await ctx.reply(embed=ErrorEmbed(text))
+    #     elif isinstance(error, _commands.CommandOnCooldown):
+    #         await ctx.reply(embed=ErrorEmbed(f'This command is on cooldown, you can use it in {round(error.retry_after, 2)}s'))
+    #     elif isinstance(error, _commands.NotOwner):
+    #         await ctx.reply(embed=ErrorEmbed("You are not owner"))
+    #     else: 
+    #         if len(str(error)) < 2000:
+    #             await ctx.reply(embed=ErrorEmbed(str(error)))
+    #         else:
+    #             await ctx.reply(embed=ErrorEmbed(str(error)[:2000:]))
 
 
 
@@ -118,3 +119,11 @@ class Client(_commands.Bot):
         
         self.db = Database("./data/DataBase.db", "main")
 
+
+    def set_user_view(
+            self,
+            user_id: int,
+            view: _View
+    ) -> None:
+        
+        self.view_cache[user_id] = view

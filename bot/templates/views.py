@@ -70,13 +70,16 @@ class Pagination(_View):
             await self.defer(ephemeral=True)
 
         kwrgs, self.total_pages = await self.get_page(self.index)
+
+        self.update_buttons()
+        
         if self.total_pages == 1:
 
             for item in self.children:
-                item.disabled = True
-            return await self.reply(**kwrgs, view=self)
+                if item.row == 0:
+                    item.disabled = True
+            
 
-        self.update_buttons()
         
         msg = await self.reply(**kwrgs, view=self)
 
@@ -102,19 +105,19 @@ class Pagination(_View):
         self.children[4].disabled = self.index == self.total_pages -1
 
     # @button(label="<<", style=ButtonStyle.blurple, disabled=True)
-    @button(emoji=emojis.pagination.get("start"), style=ButtonStyle.green, disabled=True)
+    @button(emoji=emojis.pagination.get("start"), style=ButtonStyle.green, disabled=True, row=0)
     async def start(self, interaction: Interaction, button: Button):
         self.index = 0
 
         await self.edit_page(interaction)
 
     # @button(label="<", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("previous"), style=ButtonStyle.green, disabled=True)
+    @button(emoji=emojis.pagination.get("previous"), style=ButtonStyle.green, disabled=True, row=0)
     async def previous(self, interaction: Interaction, button: Button):
         self.index -= 1
         await self.edit_page(interaction)
 
-    @button(label="1 / 1", style=ButtonStyle.grey)
+    @button(label="1 / 1", style=ButtonStyle.grey, row=0)
     async def index_button(
         self,
         interaction: Interaction,
@@ -127,13 +130,13 @@ class Pagination(_View):
         return await interaction.response.send_modal(modal)
 
     # @button(label=">", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("next"), style=ButtonStyle.green)
+    @button(emoji=emojis.pagination.get("next"), style=ButtonStyle.green, row=0)
     async def next(self, interaction: Interaction, button: Button):
         self.index += 1
         await self.edit_page(interaction)
 
     # @button(label=">>", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("end"), style=ButtonStyle.green)
+    @button(emoji=emojis.pagination.get("end"), style=ButtonStyle.green, row=0)
     async def end(self, interaction: Interaction, button: Button):
 
         self.index = self.total_pages -1
@@ -163,7 +166,7 @@ class EmojisView(Pagination):
 
         super().__init__(get_page, interaction, ctx)
     
-    @button(label="Steal this one", style=ButtonStyle.green)
+    @button(label="Steal this one", style=ButtonStyle.green, emoji=emojis.global_emojis["hand"])
     async def add_emoji(
         self,
         interaction: Interaction,
@@ -173,6 +176,9 @@ class EmojisView(Pagination):
             thinking=True
         )
 
+        check_mark = emojis.global_emojis["checkmark"]
+        cross_mark = emojis.global_emojis["crossmark"]
+
         emoji = self.emojis[self.index]
         url = "https://cdn.discordapp.com/emojis/{}.png".format(emoji.get("id"))
         async with ClientSession() as client:
@@ -180,12 +186,14 @@ class EmojisView(Pagination):
                 
                 if not resp.status == 200:
                     return await interaction.edit_original_response(
-                        content="Failed to create emoji `{}`: Invalid emoji data".format(
+                        content="{} | Failed to steal emoji `{}`: Invalid emoji data".format(
+                            cross_mark,
                             emoji.get("name")
                         )
                     )
                 
                 data = await resp.read()
+                
                 
 
                 try:
@@ -201,7 +209,8 @@ class EmojisView(Pagination):
 
 
                     await interaction.edit_original_response(
-                        content="{} Created successfully".format(
+                        content="{} | Successfully stole emoji: {}".format(
+                            check_mark,
                             emoji
                         )
                     )
@@ -209,7 +218,8 @@ class EmojisView(Pagination):
                 except Forbidden:
 
                     await interaction.edit_original_response(
-                        content="Failed to create emoji `{}`: 403 error occured".format(
+                        content="{} | Failed to create emoji `{}`: 403 error occured".format(
+                            cross_mark,
                             emoji.get("name")
                         )
                     )
@@ -218,14 +228,16 @@ class EmojisView(Pagination):
                     if e.code == 30008:
 
                         await interaction.edit_original_response(
-                            content="Failed to create emoji `{}`: The server has reached the maximum number of custom emojis".format(
+                            content="{} | Failed to steal emoji `{}`: The server has reached the maximum number of custom emojis".format(
+                                cross_mark,
                                 emoji.get("name")
                             )
                         )
                     
                     else:
                         await interaction.edit_original_response(
-                            content="Failed to create emoji `{}`: {}".format(
+                            content="{} | Failed to steal emoji `{}`: {}".format(
+                                cross_mark,
                                 emoji.get("name"),
                                 e.text
                             )

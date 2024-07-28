@@ -43,7 +43,7 @@ class Client(_commands.Bot):
     async def on_ready(self):
 
         
-        await self.change_presence(activity=_Activity(type=_ActivityType.streaming, url="https://twitch.tv/discord", name="?help - TTK 2"))
+        await self.change_presence(activity=_Activity(type=_ActivityType.streaming, url="https://twitch.tv/discord", name="TTK 2 - ?help"))
         if self.cogs != {}: return self.logger.warn("Skipped loading cogs: Reconnecting")
 
         self.logger.success(f"Discord Client Logged in as {self.user.name}")

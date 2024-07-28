@@ -1,3 +1,4 @@
+from types import FunctionType
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from aiohttp import ClientSession
@@ -399,3 +400,46 @@ class DynamicHelpView(Pagination):
             self.view.cog = cog
             self.view.index = 0
             await self.view.edit_page(interaction)
+
+class YesOrNoView(View):
+
+    def __init__(
+            self,
+            function_to_call_after_yes: FunctionType,
+            function_to_call_after_no: FunctionType
+    ):
+
+        self.ftcay = function_to_call_after_yes
+        self.ftcan = function_to_call_after_no
+
+        super().__init__(timeout=120)
+
+    @button(
+        label="Yes",
+        style=ButtonStyle.green,
+        custom_id="yes",
+    )
+    async def yes_button(
+        self,
+        interaction: Interaction,
+        button: Button
+    ): 
+        return await self.ftcay(
+            interaction,
+            button
+        )
+    
+    @button(
+        label="No",
+        style=ButtonStyle.red,
+        custom_id="no" 
+    )
+    async def no_button(
+        self,
+        interaction: Interaction,
+        button: Button
+    ):
+        return await self.ftcan(
+            interaction,
+            button
+        )

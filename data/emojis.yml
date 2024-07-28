@@ -1,13 +1,13 @@
 pagination:
-  next: "<next:1266504472381624412>"
-  end: "<end:1266504584952545363>"
-  previous: "<prev:1266504493303074899>"
-  start: "<start:1266504606955995136>"
+  next: "<:right:1266987257718640680>"
+  end: "<:end:1266987298281488404>"
+  previous: "<:left:1266987241532821504>"
+  start: "<:start:1266987276534288425>"
 
 
 global:
-  trashcan: "<trashcan:1266505183651696793>"
-  checkmark: "<:white_checkmark:1266706867418038322>"
-  crossmark: "<:crossmark:1266707152416931893>"
+  trashcan: "<:trashcan:1266987226567409806>"
+  checkmark: "<:checkmark:1266987171697655828>"
+  crossmark: "<:crossmark:1266987159160885361>"
   exclamation: "❕"
-  hand: "<:Hand:1266706515989893211>"
+  hand: "<:hand:1266987133663580171>"

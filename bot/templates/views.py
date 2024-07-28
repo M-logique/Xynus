@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Sequence
 
 from aiohttp import ClientSession
 from discord import Button, ButtonStyle, Emoji, Interaction
@@ -104,14 +104,14 @@ class Pagination(_View):
         self.children[4].disabled = self.index == self.total_pages -1
 
     # @button(label="<<", style=ButtonStyle.blurple, disabled=True)
-    @button(emoji=emojis.pagination.get("start"), style=ButtonStyle.green, disabled=True, row=0)
+    @button(emoji=emojis.pagination.get("start"), style=ButtonStyle.blurple, disabled=True, row=0)
     async def start(self, interaction: Interaction, button: Button):
         self.index = 0
 
         await self.edit_page(interaction)
 
     # @button(label="<", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("previous"), style=ButtonStyle.green, disabled=True, row=0)
+    @button(emoji=emojis.pagination.get("previous"), style=ButtonStyle.blurple, disabled=True, row=0)
     async def previous(self, interaction: Interaction, button: Button):
         self.index -= 1
         await self.edit_page(interaction)
@@ -129,13 +129,13 @@ class Pagination(_View):
         return await interaction.response.send_modal(modal)
 
     # @button(label=">", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("next"), style=ButtonStyle.green, row=0)
+    @button(emoji=emojis.pagination.get("next"), style=ButtonStyle.blurple, row=0)
     async def next(self, interaction: Interaction, button: Button):
         self.index += 1
         await self.edit_page(interaction)
 
     # @button(label=">>", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("end"), style=ButtonStyle.green, row=0)
+    @button(emoji=emojis.pagination.get("end"), style=ButtonStyle.blurple, row=0)
     async def end(self, interaction: Interaction, button: Button):
 
         self.index = self.total_pages -1
@@ -243,3 +243,17 @@ class EmojisView(Pagination):
                         )
 
     
+
+
+
+class DynamicHelpView(Pagination):
+
+    def __init__(
+            self,
+            commands: Sequence[commands.Command],
+            cogs: Sequence[commands.Cog]
+    ) -> None:
+        
+        super().__init__(
+            
+        )

@@ -38,6 +38,7 @@ class Client(_commands.Bot):
                          strip_after_prefix=strip_aftre_prefix,
                          allowed_mentions=allowed_mentions, 
                          intents=intents,
+                         help_command=None,
                          **options)
 
     async def on_ready(self):

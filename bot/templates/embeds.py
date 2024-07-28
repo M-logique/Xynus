@@ -1,9 +1,12 @@
 from datetime import datetime as _datetime
 from typing import Any as _Any
 from typing import Sequence as _Sequence
+from typing import Union as _Union
 
 from discord import Color as _Color
 from discord import Embed as _Embed
+from discord import Member as _Member
+
 from discord.ext import commands as _commands
 
 from bot.core.settings import settings
@@ -75,4 +78,49 @@ class CommandsEmbed(_Embed):
             color=_color,
             description=base,
             **kwrgs
+        )
+
+class DynamicHelpEmbed(SimpleEmbed):
+
+    def __init__(
+            self,
+            client: _commands.Bot,
+            ctx: _commands.Context,
+            prefix: _Union[_Sequence, str],
+            commands_that_user_can_use: _Sequence[_commands.Command],
+            commands: _Sequence[_commands.Command],
+            **kwrgs
+    ):
+        
+
+        prefix = [*filter(lambda x: "@" not in x, prefix)]
+
+        self.single_prefix = prefix if isinstance(prefix, str) else prefix[0]
+        prefix = prefix if isinstance(prefix, str) else f'[{", ".join(prefix)}]'
+
+        
+        
+        description = (
+            f"・ Prefix: `{prefix}`\n"
+            f"・ Total commands: `{len(commands)}` | Usable by you (here): {len(commands_that_user_can_use)}\n"
+            f"・ Type `{self.single_prefix}help <command | module>` for more info\n"
+        )
+
+    
+        super().__init__(
+            client=client,
+            description=description,
+            **kwrgs
+        )
+
+
+        self.set_thumbnail(
+            url=client.user.display_avatar
+        )
+
+        self.set_footer(
+            icon_url=ctx.author.display_avatar,
+            text="Invoked by {}".format(
+                ctx.author.display_name
+            )
         )

@@ -9,13 +9,12 @@ from bot.core import guilds
 from bot.core.client import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.embeds import CommandsEmbed, SimpleEmbed
+from bot.templates.embeds import CommandsEmbed, SimpleEmbed, DynamicHelpEmbed
 from bot.templates.views import EmojisView, Pagination
 from bot.templates.wrappers import check_views
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  remove_duplicates_preserve_order)
-from datetime import datetime
 from discord import Role, utils
 
 _emojis = Emojis()
@@ -113,7 +112,7 @@ class Tools(Cog):
                 text="Invoked by {}.".format(
                     ctx.author.display_name
                 ),
-                icon_url=ctx.author.avatar
+                icon_url=ctx.author.display_avatar
             )
 
             url = "https://cdn.discordapp.com/emojis/{}.png".format(
@@ -244,7 +243,7 @@ class Tools(Cog):
             text="Invoked by {}".format(
                 ctx.author.display_name
             ),
-            icon_url=ctx.author.avatar
+            icon_url=ctx.author.display_avatar
         )
 
         return await ctx.reply(
@@ -307,7 +306,7 @@ class Tools(Cog):
                 text="Invoked by {}.".format(
                     ctx.author.display_name
                 ),
-                icon_url=ctx.author.avatar
+                icon_url=ctx.author.display_avatar
             )
 
             kwrgs = {
@@ -388,7 +387,7 @@ class Tools(Cog):
                 text="Invoked by {}.".format(
                     ctx.author.display_name
                 ),
-                icon_url=ctx.author.avatar
+                icon_url=ctx.author.display_avatar
             )
 
             kwrgs = {
@@ -502,7 +501,7 @@ class Tools(Cog):
                 text="Invoked by {}.".format(
                     ctx.author.display_name
                 ),
-                icon_url=ctx.author.avatar
+                icon_url=ctx.author.display_avatar
             )
 
             kwrgs = {
@@ -526,5 +525,45 @@ class Tools(Cog):
 
 
         await pagination_view.navegate(ephemeral=ephemeral)
+
+    @commands.hybrid_command(
+        name="help",
+        description="Display's the help message",
+        aliases=["h"]
+    )
+    @app_commands.guilds(*guilds)
+    async def help(
+        self,
+        ctx: commands.Context,
+    ):
+
+        cogs = [self.client.cogs[i] for i in self.client.cogs]
+
+        cog_commands = [cog.get_commands() for cog in cogs]
+
+        commands = []
+
+        for command in cog_commands: commands+=[*command]
+
+
+        user_accessible_commands = []
+
+        for command in commands:
+
+            if await command.can_run(ctx):
+                user_accessible_commands.append(command)
+
+
+        prefix = await self.client.get_prefix(ctx) if isinstance(await self.client.get_prefix(ctx), str) else list(set(i.strip() for i in await self.client.get_prefix(ctx)))
+        return await ctx.reply(
+            embed=DynamicHelpEmbed(
+                client=self.client,
+                commands=commands,
+                ctx=ctx,
+                prefix=prefix,
+                commands_that_user_can_use=user_accessible_commands
+            ),
+        )
+
 
 async def setup(c): await c.add_cog(Tools(c))

@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 from aiohttp import ClientSession
 from discord import Button, ButtonStyle, Emoji, Interaction
@@ -7,6 +7,7 @@ from discord.ext import commands
 from discord.ui import View as _View
 from discord.ui import button
 
+from .embeds import DynamicHelpEmbed
 from ..utils.config import Emojis
 from ..utils.functions import disable_all_items as _disable_all_items
 
@@ -250,10 +251,20 @@ class DynamicHelpView(Pagination):
 
     def __init__(
             self,
+            client: commands.Bot,
+            ctx: commands.Context,
+            prefix: Union[str, Sequence[str]],
             commands: Sequence[commands.Command],
             cogs: Sequence[commands.Cog]
     ) -> None:
         
+        self.embed = DynamicHelpEmbed(
+            client=client,
+            ctx=ctx,
+            prefix=prefix,
+            commands=commands
+        )
+
         super().__init__(
             
         )

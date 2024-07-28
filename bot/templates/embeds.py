@@ -87,7 +87,7 @@ class DynamicHelpEmbed(SimpleEmbed):
             client: _commands.Bot,
             ctx: _commands.Context,
             prefix: _Union[_Sequence, str],
-            commands_that_user_can_use: _Sequence[_commands.Command],
+            user_accessible_commands: _Sequence[_commands.Command],
             commands: _Sequence[_commands.Command],
             **kwrgs
     ):
@@ -102,7 +102,7 @@ class DynamicHelpEmbed(SimpleEmbed):
         
         description = (
             f"・ Prefix: `{prefix}`\n"
-            f"・ Total commands: `{len(commands)}` | Usable by you (here): {len(commands_that_user_can_use)}\n"
+            f"・ Total commands: `{len(commands)}` | Usable by you (here): {len(user_accessible_commands)}\n"
             f"・ Type `{self.single_prefix}help <command | module>` for more info\n"
         )
 

@@ -16,6 +16,7 @@ from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  remove_duplicates_preserve_order)
 from discord import Role, utils
+from time import time
 
 _emojis = Emojis()
 
@@ -350,7 +351,7 @@ class Tools(Cog):
         ephemeral: Optional[bool] = False
     ):
         
-        muted = [*filter(lambda x: x.timed_out_until is not None, [*ctx.guild.members])]
+        muted = [*filter(lambda x: x.timed_out_until is not None and x.timed_out_until.timestamp() > time(), [*ctx.guild.members])]
 
 
         muted = [
@@ -561,7 +562,7 @@ class Tools(Cog):
                 commands=commands,
                 ctx=ctx,
                 prefix=prefix,
-                commands_that_user_can_use=user_accessible_commands
+                user_accessible_commands=user_accessible_commands
             ),
         )
 

@@ -5,12 +5,14 @@ from discord import Button, ButtonStyle, Emoji, Interaction
 from discord.components import SelectOption
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
-from discord.ui import View as _View, Select as _Select 
+from discord.ui import Select as _Select
+from discord.ui import View as _View
 from discord.ui import button
 
-from .embeds import DynamicHelpEmbed, CommandsEmbed
 from ..utils.config import Emojis
-from ..utils.functions import disable_all_items as _disable_all_items, chunker as _chunker
+from ..utils.functions import chunker as _chunker
+from ..utils.functions import disable_all_items as _disable_all_items
+from .embeds import CommandsEmbed, DynamicHelpEmbed
 
 emojis = Emojis()
 

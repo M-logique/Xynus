@@ -6,7 +6,6 @@ from typing import Union as _Union
 from discord import Color as _Color
 from discord import Embed as _Embed
 from discord import Member as _Member
-
 from discord.ext import commands as _commands
 
 from bot.core.settings import settings

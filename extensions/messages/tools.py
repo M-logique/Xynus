@@ -1,7 +1,8 @@
+from time import time
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord import app_commands
+from discord import Role, app_commands, utils
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -10,13 +11,11 @@ from bot.core.client import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import CommandsEmbed, SimpleEmbed
-from bot.templates.views import EmojisView, Pagination, DynamicHelpView
+from bot.templates.views import DynamicHelpView, EmojisView, Pagination
 from bot.templates.wrappers import check_views
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  remove_duplicates_preserve_order)
-from discord import Role, utils
-from time import time
 
 _emojis = Emojis()
 

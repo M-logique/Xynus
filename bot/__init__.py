@@ -1,2 +1,2 @@
-__name__ = "V2rayManagerBot"
+__name__ = "TTK-Light"
 __version__ = "1.0.0" 

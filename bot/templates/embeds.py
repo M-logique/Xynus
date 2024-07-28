@@ -104,7 +104,7 @@ class DynamicHelpEmbed(SimpleEmbed):
             f"・ Prefix: `{prefix}`\n"
             f"・ Total commands: `{len(commands)}` | Usable by you (here): {len(user_accessible_commands)}\n"
             f"・ Type `{self.single_prefix}help <command | module>` for more info\n"
-            f"> ***Choose a category to view its commands**"
+            f"> ***Choose a category to view its commands***"
         )
 
     

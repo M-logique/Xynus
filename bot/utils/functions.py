@@ -7,6 +7,7 @@ from typing import Iterator as _Iterator
 from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
+from datetime import timedelta as _timedelta
 
 from discord.ext.commands import Context as _Context
 from discord.ui import View
@@ -134,3 +135,28 @@ def split_camel_case(
         text: str
 ):
     return _re.sub(r'(?<!^)(?=[A-Z])', ' ', text)
+
+
+
+def parse_time(
+        time_str: str
+):
+    """ Parse a time string like '1d2h3m4s' into a timedelta object. """
+    time_regex = _re.compile(r"(\d+)([smhd])")
+
+
+    total_seconds = 0
+    matches = time_regex.findall(time_str)
+    for value, unit in matches:
+        unit = unit.lower() if unit else None
+        if unit == 's':
+            total_seconds += int(value)
+        elif unit == 'm':
+            total_seconds += int(value) * 60
+        elif unit == 'h':
+            total_seconds += int(value) * 3600
+        elif unit == 'd':
+            total_seconds += int(value) * 86400
+
+    
+    return _timedelta(seconds=total_seconds)

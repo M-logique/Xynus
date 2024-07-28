@@ -401,7 +401,7 @@ class DynamicHelpView(Pagination):
             self.view.index = 0
             await self.view.edit_page(interaction)
 
-class YesOrNoView(View):
+class YesOrNoView(_View):
 
     def __init__(
             self,

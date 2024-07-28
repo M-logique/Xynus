@@ -9,8 +9,8 @@ from bot.core import guilds
 from bot.core.client import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.embeds import CommandsEmbed, SimpleEmbed, DynamicHelpEmbed
-from bot.templates.views import EmojisView, Pagination
+from bot.templates.embeds import CommandsEmbed, SimpleEmbed
+from bot.templates.views import EmojisView, Pagination, DynamicHelpView
 from bot.templates.wrappers import check_views
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
@@ -23,6 +23,7 @@ _emojis = Emojis()
 class Tools(Cog):
 
     def __init__(self, client: Client) -> None:
+        self.emoji = "🔧"
         super().__init__(client)
 
     
@@ -533,6 +534,8 @@ class Tools(Cog):
         aliases=["h"]
     )
     @app_commands.guilds(*guilds)
+    @commands.cooldown(1, 5, commands.BucketType.member)
+    @check_views
     async def help(
         self,
         ctx: commands.Context,
@@ -556,15 +559,25 @@ class Tools(Cog):
 
 
         prefix = await self.client.get_prefix(ctx) if isinstance(await self.client.get_prefix(ctx), str) else list(set(i.strip() for i in await self.client.get_prefix(ctx)))
-        return await ctx.reply(
-            embed=DynamicHelpEmbed(
-                client=self.client,
-                commands=commands,
-                ctx=ctx,
-                prefix=prefix,
-                user_accessible_commands=user_accessible_commands
-            ),
+
+
+        dynamic_help_view = DynamicHelpView(
+            client=self.client,
+            ctx=ctx,
+            prefix=prefix,
+            bot_commands=commands,
+            cogs=self.client.cogs,
+            user_accessible_commands=user_accessible_commands
         )
+
+        dynamic_help_view.add_item(DeleteButton())
+
+        self.client.set_user_view(
+            user_id=ctx.author.id,
+            view=dynamic_help_view
+        )
+
+        await dynamic_help_view.navegate()
 
 
 async def setup(c): await c.add_cog(Tools(c))

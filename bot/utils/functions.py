@@ -128,3 +128,9 @@ def remove_duplicates_preserve_order(
             output_list.append(item)
     
     return output_list
+
+
+def split_camel_case(
+        text: str
+):
+    return _re.sub(r'(?<!^)(?=[A-Z])', ' ', text)

@@ -1,15 +1,16 @@
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from aiohttp import ClientSession
 from discord import Button, ButtonStyle, Emoji, Interaction
+from discord.components import SelectOption
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
-from discord.ui import View as _View
+from discord.ui import View as _View, Select as _Select 
 from discord.ui import button
 
-from .embeds import DynamicHelpEmbed
+from .embeds import DynamicHelpEmbed, CommandsEmbed
 from ..utils.config import Emojis
-from ..utils.functions import disable_all_items as _disable_all_items
+from ..utils.functions import disable_all_items as _disable_all_items, chunker as _chunker
 
 emojis = Emojis()
 
@@ -254,17 +255,145 @@ class DynamicHelpView(Pagination):
             client: commands.Bot,
             ctx: commands.Context,
             prefix: Union[str, Sequence[str]],
-            commands: Sequence[commands.Command],
-            cogs: Sequence[commands.Cog]
+            bot_commands: Sequence[commands.Command],
+            cogs: Dict[str, commands.Cog],
+            user_accessible_commands: Sequence[commands.Command],
     ) -> None:
         
-        self.embed = DynamicHelpEmbed(
+        main_embed = DynamicHelpEmbed(
             client=client,
             ctx=ctx,
             prefix=prefix,
-            commands=commands
+            commands=bot_commands,
+            user_accessible_commands=user_accessible_commands
         )
 
-        super().__init__(
+        first_cog = cogs[[*cogs][0]]
+        self.cog = first_cog
+
+        self.home = True
+
+        async def get_page(
+                index: int,
+                cog: commands.Cog
+        ): 
             
+            _commands = [*cog.get_commands()]
+            name = cog.__cog_name__
+
+            chunks = _chunker(_commands, 10)
+
+            embed = CommandsEmbed(
+                commands=chunks[index],
+                title=f"Category: {name}"
+            )
+
+            kwrgs = {
+                "embed": embed
+            }
+            total_pages = len(chunks)
+            if self.home:
+
+                kwrgs = {
+                    "embed": main_embed,
+                }
+                total_pages = 1
+                self.home = False
+
+            return kwrgs, total_pages
+
+        super().__init__(
+            get_page=get_page,
+            ctx=ctx
         )
+
+        self.add_item(
+            self.DynamicHelpSelect(
+                cogs=cogs
+            )
+        )
+
+    async def edit_page(self, interaction: Interaction):
+
+        kwrgs, self.total_pages = await self.get_page(self.index, self.cog)
+        self.update_buttons()
+        await interaction.response.edit_message(**kwrgs, view=self)
+
+
+    async def navegate(self, ephemeral: Optional[bool] = False):
+
+        if ephemeral:
+            await self.defer(ephemeral=True)
+
+        kwrgs, self.total_pages = await self.get_page(self.index, self.cog)
+
+        self.update_buttons()
+        
+        if self.total_pages == 1:
+
+            for item in self.children:
+                if item.row == 0:
+                    item.disabled = True
+            
+
+        
+        msg = await self.reply(**kwrgs, view=self)
+
+        if not self.message:
+            self.message = msg
+        else:
+            self.message = await self.message()
+
+    class DynamicHelpSelect(_Select):
+        def __init__(
+                self,
+                cogs: Sequence[commands.Cog]
+        ) -> None:
+
+            self.cogs = cogs
+
+            self.cog_values = {}
+
+            for i in range(len([*cogs])):
+                self.cog_values[f"cog_{i}"] = [*cogs][i]
+
+            cog_emojis = [self.cogs[cog].emoji for cog in self.cogs]
+
+            options = [
+                SelectOption(
+                    label="Main Page",
+                    value="home",
+                    emoji="🏡"
+                )
+            ]
+
+            options+=[
+                SelectOption(
+                    label=label,
+                    value=value,
+                    emoji=emoji
+                )
+
+                for label, value, emoji in zip(self.cogs, [*self.cog_values], cog_emojis)
+            ]
+
+
+            super().__init__(
+                options=options,
+                custom_id="helpselect",
+                placeholder="Choose a category please"
+            )
+        async def callback(self, interaction: Interaction) -> Any:
+
+            value = self.values[0]
+
+            if value == "home":
+                self.view.home = True
+                return await self.view.edit_page(interaction)
+
+            cog_name = self.cog_values[value]
+            cog = self.cogs[cog_name]
+
+            self.view.cog = cog
+            self.view.index = 0
+            await self.view.edit_page(interaction)

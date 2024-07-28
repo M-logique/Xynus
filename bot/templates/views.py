@@ -363,7 +363,7 @@ class DynamicHelpView(Pagination):
                 SelectOption(
                     label="Main Page",
                     value="home",
-                    emoji="🏡"
+                    emoji=emojis.global_emojis["house"]
                 )
             ]
 

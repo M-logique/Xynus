@@ -23,7 +23,7 @@ _emojis = Emojis()
 class Tools(Cog):
 
     def __init__(self, client: Client) -> None:
-        self.emoji = "🔧"
+        self.emoji = _emojis.global_emojis["tools"]
         super().__init__(client)
 
     
@@ -220,7 +220,7 @@ class Tools(Cog):
 
             return await emojis_view.navegate()
         
-        return await ctx.reply("Didn't find any emoji!")
+        return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any emoji!")
 
 
     @commands.hybrid_group(
@@ -276,15 +276,17 @@ class Tools(Cog):
         
         bans = [entry async for entry in ctx.guild.bans(limit=limit)]
 
+
         if bans == []:
 
-            return await ctx.reply("Didn't find any banned member in this server")
+            return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any banned member in this server")
 
         bans = [
-            "`[{}]`: `{}` - `{}` ".format(
+            "`[{}]`: `{}` - `{}`{}".format(
                 bans.index(entry) + 1,
                 entry.user.name,
-                entry.user.id
+                entry.user.id,
+                f"*reason:* {entry.reason}" if entry.reason else ""
             )
 
             for entry in bans
@@ -353,7 +355,7 @@ class Tools(Cog):
     ):
         
         muted = [*filter(lambda x: x.timed_out_until is not None and x.timed_out_until.timestamp() > time(), [*ctx.guild.members])]
-
+        muted.sort(key=lambda x: x.timed_out_until.timestamp(), reverse=True)
 
         muted = [
             "`[{}]`: `{}` - `{}` *expires <t:{}:R>*".format(
@@ -368,7 +370,7 @@ class Tools(Cog):
 
         if muted == []:
 
-            return await ctx.reply("Didn't find any muted member in this server")
+            return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any muted member in this server")
 
         
 
@@ -466,6 +468,9 @@ class Tools(Cog):
 
         members = [*filter(filtering_cases.get(filter_members), [*ctx.guild.members])]
 
+        members.sort(key= lambda x: x.joined_at.timestamp())
+
+        #TODO: sort them by joining day
 
         if with_role:
             members = [*filter(lambda x: utils.get(x.roles, id=with_role.id) is not None, members)]

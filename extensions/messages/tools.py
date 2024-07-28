@@ -25,41 +25,6 @@ class Tools(Cog):
     def __init__(self, client: Client) -> None:
         self.emoji = _emojis.global_emojis["tools"]
         super().__init__(client)
-
-    
-    # @commands.hybrid_command(
-    #     name="hello",
-    #     descriptio="Hello World!"
-    # )
-    # @app_commands.guilds(*guilds)
-    # async def hello(
-    #     self,
-    #     ctx: commands.Context
-    # ):
-    #     async def get_page(index: int):
-
-    #         chunks = chunker([str(i) for i in range(1000)], 20)
-    #         embed = SimpleEmbed(
-    #             client=self.client,
-    #             description="\n".join(chunks[index])
-    #         )
-
-    #         kwrgs = {
-    #             "embed": embed
-    #         }
-
-    #         return kwrgs, len(chunks)
-            
-        
-    #     pagination_view = Pagination(
-    #         get_page, 
-    #         ctx=ctx
-    #     )
-        
-    #     pagination_view.add_item(QuitButton())
-    #     pagination_view.add_item(DeleteButton())
-
-    #     await pagination_view.navegate()
     
     @commands.hybrid_command(
         name="steal",

@@ -16,6 +16,7 @@ from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  remove_duplicates_preserve_order)
 from datetime import datetime
+from discord import Role, utils
 
 _emojis = Emojis()
 
@@ -344,7 +345,7 @@ class Tools(Cog):
         ephemeral = "Hide the bot's response from other users. (default: False)"
     )
     @check_views
-    async def list_muted(
+    async def list_mutes(
         self,
         ctx: commands.Context,
         ephemeral: Optional[bool] = False
@@ -412,5 +413,118 @@ class Tools(Cog):
 
         await pagination_view.navegate(ephemeral=ephemeral)
     
+    @list.command(
+        name="members",
+        description="Displays a list of members in the server",
+        with_app_command=True
+    )
+    @app_commands.guilds(*guilds)
+    @commands.has_permissions(
+        ban_members = True,
+    )
+    @app_commands.rename(
+        with_role="with",
+        filter_members="filter"
+    )
+    @app_commands.describe(
+        with_role = "Select a role to show only members with  that role (default: All)",
+        filter_members = "Select a filter to show only members in that filter (default: All)",
+        ephemeral = "Hide the bot's response from other users. (default: False)",
+
+    )
+    @app_commands.choices(
+        filter_members = [
+            app_commands.Choice(
+                name="All",
+                value="all"
+            ),
+            app_commands.Choice(
+                name="Humans",
+                value="humans"
+            ),
+            app_commands.Choice(
+                name="Bots",
+                value="bots"
+            )
+        ]
+    )
+    @check_views
+    async def list_members(
+        self,
+        ctx: commands.Context,
+        with_role: Optional[Role] = None,
+        filter_members: app_commands.Choice[str] = "all",
+        ephemeral: Optional[bool] = False,
+    ):
+        
+        filtering_cases = {
+            "all": lambda x: True,
+            "humans": lambda x: not x.bot,
+            "bots": lambda x: x.bot
+        }
+
+        members = [*filter(filtering_cases.get(filter_members), [*ctx.guild.members])]
+
+
+        if with_role:
+            members = [*filter(lambda x: utils.get(x.roles, id=with_role.id) is not None, members)]
+
+
+        members = [
+            "`[{}]`: `{}` - `{}` *joined <t:{}:R>*".format(
+                members.index(entry) + 1,
+                entry.name,
+                entry.id,
+                int(entry.joined_at.timestamp())
+            )
+
+            for entry in members
+        ]
+
+
+        
+
+        async def get_page(
+                index: int
+        ):
+            chunks = chunker(members, 10)
+
+            embed = SimpleEmbed(
+                client=self.client,
+                description="\n".join(chunks[index]),
+                title="{}'s members: {}".format(
+                    ctx.guild.name,
+                    len(members)
+                )
+            )
+
+            embed.set_footer(
+                text="Invoked by {}.".format(
+                    ctx.author.display_name
+                ),
+                icon_url=ctx.author.avatar
+            )
+
+            kwrgs = {
+                "embed": embed
+            }
+
+            return kwrgs, len(chunks)
+
+        pagination_view = Pagination(
+            ctx=ctx,
+            get_page=get_page
+        )
+
+        pagination_view.add_item(DeleteButton())
+
+
+        self.client.set_user_view(
+            user_id=ctx.author.id,
+            view=pagination_view
+        )
+
+
+        await pagination_view.navegate(ephemeral=ephemeral)
 
 async def setup(c): await c.add_cog(Tools(c))

@@ -16,6 +16,7 @@ from bot.templates.wrappers import check_views
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  remove_duplicates_preserve_order)
+from bot.utils.functions import get_all_commands, filter_prefix
 
 _emojis = Emojis()
 
@@ -198,11 +199,16 @@ class Tools(Cog):
         ctx: commands.Context
     ):
 
-        
+        prefix = await self.client.get_prefix(ctx)
+        prefix = filter_prefix(prefix)[0]
+
+        all_commands = get_all_commands(commands=self.list.commands)
         
         embed = CommandsEmbed(
-            commands=self.list.commands,
-            title=self.list.description
+            commands=all_commands,
+            title=self.list.description,
+            total_commands=len(all_commands),
+            prefix=prefix
         )
 
         embed.set_footer(
@@ -499,7 +505,7 @@ class Tools(Cog):
 
     @commands.hybrid_command(
         name="help",
-        description="Display's the help message",
+        description="Displays the help message",
         aliases=["h"]
     )
     @app_commands.guilds(*guilds)
@@ -511,11 +517,8 @@ class Tools(Cog):
     ):
 
         cogs = [self.client.cogs[i] for i in self.client.cogs]
-
-        cog_commands = [cog.get_commands() for cog in cogs]
-
+        cog_commands = [get_all_commands(cog=cog) for cog in cogs]
         commands = []
-
         for command in cog_commands: commands+=[*command]
 
 
@@ -527,7 +530,8 @@ class Tools(Cog):
                 user_accessible_commands.append(command)
 
 
-        prefix = await self.client.get_prefix(ctx) if isinstance(await self.client.get_prefix(ctx), str) else list(set(i.strip() for i in await self.client.get_prefix(ctx)))
+        prefix = await self.client.get_prefix(ctx)
+        prefix = filter_prefix(prefix)
 
 
         dynamic_help_view = DynamicHelpView(

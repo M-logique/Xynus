@@ -13,6 +13,7 @@ from discord.ui import button
 from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker
 from ..utils.functions import disable_all_items as _disable_all_items
+from ..utils.functions import get_all_commands as _get_all_commands
 from .embeds import CommandsEmbed, DynamicHelpEmbed
 
 emojis = Emojis()
@@ -281,14 +282,16 @@ class DynamicHelpView(Pagination):
                 cog: commands.Cog
         ): 
             
-            _commands = [*cog.get_commands()]
+            _commands = _get_all_commands(cog=cog)
             name = cog.__cog_name__
 
             chunks = _chunker(_commands, 10)
 
             embed = CommandsEmbed(
                 commands=chunks[index],
-                title=f"Category: {name}"
+                title=f"Category: {name}",
+                prefix=prefix[0],
+                total_commands=len(_commands)
             )
 
             kwrgs = {

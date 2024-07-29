@@ -9,7 +9,7 @@ from typing import Sequence as _Sequence
 from typing import Union as _Union
 from datetime import timedelta as _timedelta
 
-from discord.ext.commands import Context as _Context
+from discord.ext.commands import Context as _Context, Cog as _Cog, Command as _Command, Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
@@ -160,3 +160,38 @@ def parse_time(
 
     
     return _timedelta(seconds=total_seconds)
+
+def get_all_commands(
+        cog: _Optional[_Cog] = None,
+        commands: _Sequence[_Command] = None
+):
+
+    if cog is None and commands is None: 
+        raise ValueError("Invalid usage")
+
+
+    raw_commands: _Sequence[_Union[_Command, _Group]] = []
+    all_commands: _Sequence[_Command] = []
+
+    if cog:
+        raw_commands+=[*cog.get_commands()]
+    
+    if commands:
+        raw_commands+=[*commands]
+
+    
+    for command in raw_commands:
+        all_commands.append(command)
+        if isinstance(command, _Group):
+            all_commands+=[*command.commands]
+            for command in command.commands:
+                if isinstance(command, _Group):
+                    all_commands+=[*command.commands]
+
+    
+
+    return all_commands
+
+
+
+filter_prefix = lambda prefix: [prefix] if isinstance(prefix, str) else [*set([i.strip() for i in filter(lambda x: "@" not in x, prefix)])]

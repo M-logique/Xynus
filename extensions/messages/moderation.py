@@ -22,7 +22,7 @@ class Moderation(Cog):
     @commands.hybrid_command(
         name="ban", 
         aliases= ["b", "massban"],
-        description="Mass bans members with an optional delete_days and reason parameter",
+        description="Mass bans members with an optional delete_days and reason parameter (in maintenance)",
         usage="<Member> [delete_days] [reason]",
         parent="moderation"
     )
@@ -35,6 +35,8 @@ class Moderation(Cog):
         *,
         reason: Optional[str] = "No reason provided"
     ):
+
+        return await ctx.reply("in maintenance")
 
         members = [i.id for i in ctx.guild.members]
         

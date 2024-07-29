@@ -53,18 +53,22 @@ class CommandsEmbed(_Embed):
             self,
             commands: _Sequence[_commands.Command],
             title: str,
+            prefix: str,
+            total_commands: int,
             **kwrgs
     ):
         
         base = "```diff\n+ {}\n```\n**Commands**: {}\n".format(
             title,
-            len(commands)
+            total_commands
         )
 
         for command in commands:
             
-            text_to_add = "\n__**{}{}**__: *`{}`*".format(
-                f"{command.parent} " if command.parent else "",
+            text_to_add = "\n__**{}{}{}{}**__: *`{}`*".format(
+                prefix,
+                f"{command.root_parent} " if command.root_parent else "",
+                f"{command.parent} " if command.parent and command.parent != command.root_parent else "",
                 command.name,
                 command.description if command.description else "No description yet!"
             )
@@ -92,10 +96,9 @@ class DynamicHelpEmbed(SimpleEmbed):
     ):
         
 
-        prefix = [*filter(lambda x: "@" not in x, prefix)]
 
-        self.single_prefix = prefix if isinstance(prefix, str) else prefix[0]
-        prefix = prefix if isinstance(prefix, str) else f'[{", ".join(prefix)}]'
+        self.single_prefix = prefix[0]
+        prefix = f'[{", ".join(prefix)}]'
 
         
         

@@ -153,6 +153,7 @@ class Database:
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
         if not self._is_float(data.get(keys[-1], 0)):
             raise ValueError("The value at the key should be an integer or float.")
+        
         data[keys[-1]] = data.get(keys[-1], 0) + value
         self._set(root_key, root_value, table)
 
@@ -192,7 +193,87 @@ class Database:
         data[keys[-1]] = data.get(keys[-1], 0) - value
         self._set(root_key, root_value, table)
 
+    def push(
+        self, 
+        key: str, 
+        value: Any, 
+        table: Optional[str] = "main"
+    ) -> None:
+        """Append a value to a list stored in the database.
+
+        Parameters:
+        key (str): The hierarchical key to append the value to.
+        value (Any): The value to append.
+        table (Optional[str]): The table to update. Defaults to "main".
+
+        Returns:
+        None
+
+        Raises:
+        ValueError: If the existing value is not a list or is not empty.
+        sqlite3.DatabaseError: If there is an error executing the query.
+        """
+
+
+        keys = key.split('.')
+
+        root_key = keys[0]
+        root_value = self._get(root_key, table) or {}
+        if not isinstance(root_value, dict):
+            root_value = {}
+        data = self._traverse_dict(root_value, keys[1:], create_missing=True)
+
+
+        if not isinstance(data.get(keys[-1], []), Sequence):
+            raise ValueError("The value at the key should be a list.")
+        if data.get(keys[-1], []) == []:
+            data[keys[-1]] = [value]
+        else:
+
+           data[keys[-1]].append(value)
+        self._set(root_key, root_value, table)
     
+    def pull(
+        self, 
+        key: str, 
+        value: Any, 
+        table: Optional[str] = "main"
+    ) -> None:
+        """Remove a value from a list stored in the database.
+
+        Parameters:
+        key (str): The key to remove the value from.
+        value (Any): The value to remove.
+        table (Optional[str]): The table to update. Defaults to "main".
+
+        Returns:
+        None
+
+        Raises:
+        ValueError: If the existing value is not a list.
+        sqlite3.DatabaseError: If there is an error executing the query.
+        """
+
+
+        keys = key.split('.')
+
+        root_key = keys[0]
+        root_value = self._get(root_key, table) or {}
+        if not isinstance(root_value, dict):
+            root_value = {}
+        data = self._traverse_dict(root_value, keys[1:], create_missing=True)
+
+
+
+        if not isinstance(data.get(keys[-1], []), Sequence):
+            raise ValueError("The value at the key should be a list.")
+        if value in data.get(keys[-1], []):
+           
+           data[keys[-1]].remove(value)
+        
+        self._set(root_key, root_value, table)
+
+
     def _setup(
             self,
             tables: Sequence[str] = ["main"]
@@ -529,21 +610,4 @@ class Database:
             data = data[key]
         return data
 
-
-    # def push(self, key: str, value: Any, table: Optional[str] = "main") -> None:
-    #     """Append a value to a list stored in the database.
-
-    #     Parameters:
-    #     key (str): The hierarchical key to append the value to.
-    #     value (Any): The value to append.
-    #     table (Optional[str]): The table to update. Defaults to "main".
-
-    #     Returns:
-    #     None
-
-    #     Raises:
-    #     ValueError: If the existing value is not a list or is not empty.
-    #     sqlite3.DatabaseError: If there is an error executing the query.
-    #     """
-    
 

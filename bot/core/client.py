@@ -16,7 +16,6 @@ from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
 
-
 class Client(_commands.Bot):
 
 
@@ -119,6 +118,13 @@ class Client(_commands.Bot):
             _makedirs("./data")
         
         self.db = Database("./data/DataBase.db", "main")
+        from ..templates.views import PersistentViews
+
+        view_collection = PersistentViews(self)
+
+        for view in view_collection.views:
+
+            self.add_view(view(client=self))
 
 
     def set_user_view(

@@ -446,3 +446,17 @@ class YesOrNoView(_View):
             interaction,
             button
         )
+    
+
+
+class PersistentViews:
+
+    def __init__(self, client: commands.Bot) -> None:
+        self.client = client
+
+    @property
+    def views(self):
+        for name in dir(self):
+            attr = getattr(self, name)
+            if isinstance(attr, type) and issubclass(attr, _View):
+                yield attr

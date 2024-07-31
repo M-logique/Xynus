@@ -15,6 +15,8 @@ from ..utils.functions import chunker as _chunker
 from ..utils.functions import disable_all_items as _disable_all_items
 from ..utils.functions import get_all_commands as _get_all_commands
 from .embeds import CommandsEmbed, DynamicHelpEmbed
+from discord import User
+
 
 emojis = Emojis()
 
@@ -409,13 +411,26 @@ class YesOrNoView(_View):
     def __init__(
             self,
             function_to_call_after_yes: FunctionType,
-            function_to_call_after_no: FunctionType
+            function_to_call_after_no: FunctionType,
+            author: User
     ):
+
+
+        self.author = author
+
 
         self.ftcay = function_to_call_after_yes
         self.ftcan = function_to_call_after_no
 
         super().__init__(timeout=120)
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        
+        if self.author.id == interaction.user.id:
+            return True
+        
+        await interaction.response.edit_message()
+        return False
 
     @button(
         label="Yes",

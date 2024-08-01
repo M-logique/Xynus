@@ -198,5 +198,39 @@ class Moderation(Cog):
         except:
             pass    
 
+    @purge.command(
+        name="bots",
+        description="Bulk deletes messages before the specified message.",
+        with_app_command=True
+
+    )
+    @app_commands.describe(
+        amount = "Enter a number between 2-1000 to bulk delete messages."
+    )
+    @app_commands.guilds(*guilds)
+    async def purge_bots(
+        self,
+        ctx: commands.Context,
+        amount: Optional[int] = 100,
+    ):
+        if amount > 1000 or amount < 2:
+            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+
+        messages = [message async for message in ctx.channel.history(limit=amount+1)]
+        messages = [*filter(lambda msg: (datetime.now(UTC) - msg.created_at).days < 14 and msg.author.bot, messages)]
+
+        total_messages = len(messages)
+
+        chunks = chunker(messages, 100)
+
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
+
+        for chunk in chunks:
+            await ctx.channel.delete_messages(chunk)
+        try:
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
+            await msg.delete(delay=5)
+        except:
+            pass
 
 async def setup(c): await c.add_cog(Moderation(c))

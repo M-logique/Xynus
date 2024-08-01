@@ -1,6 +1,6 @@
 from typing import Optional
 
-from discord import Button, Interaction, User
+from discord import Button, Interaction, User, NotFound
 from discord.ext import commands
 
 from bot.core import guilds
@@ -120,12 +120,16 @@ class Moderation(Cog):
     @commands.hybrid_group(
         name="purge",
         fallback="all",
-        description="Bulk deletes messages"
+        description="Bulk deletes messages",
     )
     @commands.has_permissions(
         manage_messages = True
     )
+    @app_commands.describe(
+        amount = "Enter a number between 2-1000 to bulk delete messages."
+    )
     @app_commands.guilds(*guilds)
+    @commands.cooldown(1, 10, commands.BucketType.member)
     async def purge(
         self,
         ctx: commands.Context,
@@ -137,17 +141,62 @@ class Moderation(Cog):
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
         messages = [*filter(lambda msg: (datetime.now(UTC) - msg.created_at).days < 14, messages)]
 
+        total_messages = len(messages)
 
         chunks = chunker(messages, 100)
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {amount} messages.")
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
 
         for chunk in chunks:
             await ctx.channel.delete_messages(chunk)
         try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {amount} messages.")
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
             await msg.delete(delay=5)
         except:
             pass
+
+
+    @purge.command(
+        name="before",
+        description="Bulk deletes messages before the specified message.",
+        with_app_command=True,
+        aliases=["until"]
+
+    )
+    @app_commands.describe(
+        message_id = "The ID of the message you want to delete before it."
+    )
+    @app_commands.guilds(*guilds)
+    async def purge_until(
+        self,
+        ctx: commands.Context,
+        message_id: str,
+    ):
+        if not message_id.isnumeric(): 
+            return await ctx.reply("Please enter the message id.")
+        
+        message_id = int(message_id)
+        try:
+            await ctx.channel.fetch_message(message_id)
+        except NotFound:
+            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} Did not find the specified message.")
+        
+        messages = [message async for message in ctx.channel.history(limit=500)]
+        messages = [*filter(lambda msg: (datetime.now(UTC) - msg.created_at).days < 14 and (msg.id > message_id), messages)]
+
+        total_messages = len(messages)
+
+        chunks = chunker(messages, 100)
+
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
+
+        for chunk in chunks:
+            await ctx.channel.delete_messages(chunk)
+        try:
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
+            await msg.delete(delay=5)
+        except:
+            pass    
+
 
 async def setup(c): await c.add_cog(Moderation(c))

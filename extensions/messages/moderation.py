@@ -140,7 +140,7 @@ class Moderation(Cog):
             return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
-        messages = [*filter(lambda msg: (datetime.now() - msg.created_at).days < 14, messages)]
+        messages = [*filter(lambda msg: (datetime.utcnow() - msg.created_at).days < 14, messages)]
 
         total_messages = len(messages)
 
@@ -183,7 +183,7 @@ class Moderation(Cog):
             return await ctx.reply(f"{_emojis.global_emojis['crossmark']} Did not find the specified message.")
         
         messages = [message async for message in ctx.channel.history(limit=500)]
-        messages = [*filter(lambda msg: (datetime.now() - msg.created_at).days < 14 and (msg.id > message_id), messages)]
+        messages = [*filter(lambda msg: (datetime.utcnow() - msg.created_at).days < 14 and (msg.id > message_id), messages)]
 
         total_messages = len(messages)
 
@@ -218,7 +218,7 @@ class Moderation(Cog):
             return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
-        messages = [*filter(lambda msg: (datetime.now() - msg.created_at).days < 14 and msg.author.bot, messages)]
+        messages = [*filter(lambda msg: (datetime.utcnow() - msg.created_at).days < 14 and msg.author.bot, messages)]
 
         total_messages = len(messages)
 
@@ -255,7 +255,7 @@ class Moderation(Cog):
         is_command = lambda message: bool(compile(rf'^{escape(prefix)}\w+').match(message))
 
         messages = [message async for message in ctx.channel.history(limit=500)]
-        messages = [*filter(lambda msg: (datetime.now() - msg.created_at).days < 14 and (not msg.author.bot and is_command(msg.content)), messages)]
+        messages = [*filter(lambda msg: (datetime.utcnow() - msg.created_at).days < 14 and (not msg.author.bot and is_command(msg.content)), messages)]
 
         total_messages = len(messages)
 

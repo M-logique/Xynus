@@ -25,10 +25,11 @@ class Moderation(Cog):
     @commands.hybrid_command(
         name="ban", 
         aliases= ["b", "massban"],
-        description="Mass bans members with an optional delete_days and reason parameter (in maintenance)",
+        description="Mass bans members with an optional delete_days and reason parameter",
         usage="<Member> [delete_days] [reason]",
         parent="moderation"
     )
+    
     @commands.has_permissions(ban_members=True)
     async def ban(
         self,

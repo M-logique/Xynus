@@ -278,12 +278,12 @@ class DynamicHelpView(Pagination):
         self.cog = first_cog
 
         self.home = True
+        self.ctx = ctx
 
         async def get_page(
                 index: int,
                 cog: commands.Cog
         ): 
-            
             _commands = _get_all_commands(cog=cog)
             name = cog.__cog_name__
 
@@ -331,9 +331,7 @@ class DynamicHelpView(Pagination):
 
     async def navegate(self, ephemeral: Optional[bool] = False):
 
-        if ephemeral:
-            await self.defer(ephemeral=True)
-
+        
         kwrgs, self.total_pages = await self.get_page(self.index, self.cog)
 
         self.update_buttons()
@@ -346,7 +344,7 @@ class DynamicHelpView(Pagination):
             
 
         
-        msg = await self.reply(**kwrgs, view=self)
+        msg = await self.reply(**kwrgs, view=self, ephemeral=ephemeral)
 
         if not self.message:
             self.message = msg

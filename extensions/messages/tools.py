@@ -570,6 +570,13 @@ class Tools(Cog):
                     "embed": embed
                 }
 
+                embed.set_footer(
+                    text="Invoked by {}".format(
+                        ctx.author.display_name
+                    ),
+                    icon_url=ctx.author.avatar
+                )
+
                 return kwrgs, len(similar_strings)
             
 

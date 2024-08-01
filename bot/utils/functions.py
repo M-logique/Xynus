@@ -17,6 +17,7 @@ from discord.ext.commands import Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
+from inspect import Parameter as _Parameter
 
 from ..core.settings import settings as _settings
 
@@ -204,38 +205,22 @@ filter_prefix = lambda prefix: [prefix] if isinstance(prefix, str) else [*set([i
 def format_command_params(
         command: _Command
 ) -> str:
-    """
-    Formats the parameters of a command into a string signature.
-    """
+    
+    signature = ""
 
-    # Co-Authored by catssomecat aka ElysianCat
-
-    # Initialize an empty list to collect the signature components
-    signature_parts: _Sequence[str] = []
-
-    # Get the cleaned parameters from the command
-    params: _Dict[str, _Any] = command.clean_params
+    params = command.clean_params
 
     for name, param in params.items():
-        # Check if the parameter has no default value and no annotation
-        if param.default is param.empty and param.annotation is param.empty:
-            # Add the parameter as a required one
-            signature_parts.append(f"<{name}>")
+        if param.default is param.empty and param.annotation is param.empty or (param.default is _Parameter.empty):
+            signature += f" <{name}>"
         else:
-            # Initialize the signature for optional parameters
-            param_signature: str = f"[{name}"
-            
-            # Append the default value if it exists
-            if param.default is not param.empty:
-                param_signature += f"={param.default}"
-                
-            param_signature += "]"
-            
-            # Add the optional parameter to the signature parts
-            signature_parts.append(param_signature)
+            default = param.default
+            if param.annotation is not param.empty:
+                signature += f" [{name}={default}]"
+            else:
+                signature += f" [{name}]"
 
-    # Join all the parts into a single string separated by spaces
-    return " ".join(signature_parts)
+    return signature
 
 
 def suggest_similar_strings(

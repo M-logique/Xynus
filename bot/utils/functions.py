@@ -205,22 +205,38 @@ filter_prefix = lambda prefix: [prefix] if isinstance(prefix, str) else [*set([i
 def format_command_params(
         command: _Command
 ) -> str:
-    
-    signature = ""
+    """
+    Formats the parameters of a command into a string signature.
+    """
 
-    params = command.clean_params
+    # Co-Authored by catssomecat aka ElysianCat
+
+    # Initialize an empty list to collect the signature components
+    signature_parts: _Sequence[str] = []
+
+    # Get the cleaned parameters from the command
+    params: _Dict[str, _Any] = command.clean_params
 
     for name, param in params.items():
+        # Check if the parameter has no default value and no annotation
         if param.default is param.empty and param.annotation is param.empty or (param.default is _Parameter.empty):
-            signature += f" <{name}>"
+            # Add the parameter as a required one
+            signature_parts.append(f"<{name}>")
         else:
-            default = param.default
-            if param.annotation is not param.empty:
-                signature += f" [{name}={default}]"
-            else:
-                signature += f" [{name}]"
+            # Initialize the signature for optional parameters
+            param_signature: str = f"[{name}"
+            
+            # Append the default value if it exists
+            if param.default is not param.empty:
+                param_signature += f"={param.default}"
+                
+            param_signature += "]"
+            
+            # Add the optional parameter to the signature parts
+            signature_parts.append(param_signature)
 
-    return signature
+    # Join all the parts into a single string separated by spaces
+    return " ".join(signature_parts)
 
 
 def suggest_similar_strings(

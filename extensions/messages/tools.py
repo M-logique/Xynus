@@ -2,7 +2,7 @@ from time import time
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord import Role, app_commands, utils
+from discord import Role, app_commands, utils, Interaction
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -10,13 +10,17 @@ from bot.core import guilds
 from bot.core.client import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.embeds import CommandsEmbed, SimpleEmbed
+from bot.templates.embeds import CommandsEmbed, SimpleEmbed, CommandInfoEmbed
 from bot.templates.views import DynamicHelpView, EmojisView, Pagination
-from bot.templates.wrappers import check_views
+from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
-                                 remove_duplicates_preserve_order)
+                                 remove_duplicates_preserve_order, 
+                                 suggest_similar_strings)
 from bot.utils.functions import get_all_commands, filter_prefix
+from bot.templates.autocomplete import help_autocomplete
+from bot.core import _settings
+
 
 _emojis = Emojis()
 
@@ -30,7 +34,8 @@ class Tools(Cog):
         name="steal",
         description="Steals specified emojis and adds them to the server",
         with_app_command=True,
-        aliases=["addemojis"]
+        aliases=["addemojis"],
+        usage=""
     )
     @app_commands.guilds(*guilds)
     @app_commands.describe(
@@ -440,7 +445,6 @@ class Tools(Cog):
 
         members.sort(key= lambda x: x.joined_at.timestamp())
 
-        #TODO: sort them by joining day
 
         if with_role:
             members = [*filter(lambda x: utils.get(x.roles, id=with_role.id) is not None, members)]
@@ -503,35 +507,86 @@ class Tools(Cog):
 
         await pagination_view.navegate(ephemeral=ephemeral)
 
-    @commands.hybrid_command(
+    @commands.command(
         name="help",
         description="Displays the help message",
         aliases=["h"]
     )
-    @app_commands.guilds(*guilds)
     @commands.cooldown(1, 5, commands.BucketType.member)
     @check_views
-    async def help(
+    async def help_cmd(
         self,
         ctx: commands.Context,
+        *,
+        cmd: Optional[str] = None
     ):
+        
+
+        prefix = await self.client.get_prefix(ctx)
+        prefix = filter_prefix(prefix)
+
 
         cogs = [self.client.cogs[i] for i in self.client.cogs]
         cog_commands = [get_all_commands(cog=cog) for cog in cogs]
         commands = []
-        for command in cog_commands: commands+=[*command]
+        commands_with_names = {}
 
+        full_name = lambda command: "{}{}{}".format(
+            f"{command.root_parent} " if command.root_parent else "",
+            f"{command.parent} " if command.parent and command.parent != command.root_parent else "",
+            command.name,
+        )
 
-        user_accessible_commands = []
+        for command in cog_commands: 
+            commands+=[*command]
+            for command in [*command]:
+                commands_with_names[full_name(command)] = command
+        
+        if cmd:
+            similar_strings = suggest_similar_strings(
+                target=cmd,
+                string_list=[*commands_with_names],
+                cutoff=0.6,
+                n=5
+            )
 
-        for command in commands:
+            if not similar_strings or similar_strings == []:
+                return await ctx.reply("No matching command were found.")
 
-            if await command.can_run(ctx):
-                user_accessible_commands.append(command)
+            async def get_page(
+                    index: int
+            ):
+                name = similar_strings[index]
+                command = commands_with_names[name]
+                
+                embed = CommandInfoEmbed(
+                    self.client,
+                    command=command,
+                    full_name=name,
+                    prefix=prefix
+                )
 
+                kwrgs = {
+                    "embed": embed
+                }
 
-        prefix = await self.client.get_prefix(ctx)
-        prefix = filter_prefix(prefix)
+                return kwrgs, len(similar_strings)
+            
+
+            pagination_view = Pagination(
+                get_page=get_page,
+                ctx=ctx
+            )
+
+            self.client.set_user_view(
+                user_id=ctx.author.id,
+                view=pagination_view
+            )
+
+            pagination_view.add_item(DeleteButton())
+
+            return await pagination_view.navegate()
+
 
 
         dynamic_help_view = DynamicHelpView(
@@ -540,7 +595,6 @@ class Tools(Cog):
             prefix=prefix,
             bot_commands=commands,
             cogs=self.client.cogs,
-            user_accessible_commands=user_accessible_commands
         )
 
         dynamic_help_view.add_item(DeleteButton())
@@ -551,6 +605,89 @@ class Tools(Cog):
         )
 
         await dynamic_help_view.navegate()
+
+    @app_commands.command(
+        name="help",
+        description="Displays the help message"
+    )
+    @app_commands.rename(
+        cmd = "command"
+    )
+    @app_commands.autocomplete(
+        cmd = help_autocomplete
+    )
+    @app_commands.guilds(*guilds)
+    @check_views_interaction
+    async def help_slash(
+        self,
+        inter: Interaction,
+        cmd: Optional[str] = None
+    ):
+        
+        prefix = filter_prefix(_settings.PREFIX)
+
+        if cmd:
+            bot_commands = {}
+            full_name = lambda command: "{}{}{}".format(
+                f"{command.root_parent} " if command.root_parent else "",
+                f"{command.parent} " if command.parent and command.parent != command.root_parent else "",
+                command.name,
+            )
+
+            for cog_name in inter.client.cogs:
+                cog = inter.client.cogs[cog_name]
+
+                for command in get_all_commands(cog):
+                    bot_commands[full_name(command)] = command
+            
+            command = bot_commands.get(cmd)
+
+            embed = CommandInfoEmbed(
+                client=self.client,
+                command=command,
+                prefix=prefix,
+                full_name=cmd
+            )
+
+            embed.set_footer(
+                text=f"Invoked by {inter.user.display_name}",
+                icon_url=inter.user.display_avatar
+            )
+
+            return await inter.response.send_message(
+                embed=embed,
+            )
+
+
+        cogs = [self.client.cogs[i] for i in self.client.cogs]
+        cog_commands = [get_all_commands(cog=cog) for cog in cogs]
+        commands = []
+        for command in cog_commands: commands+=[*command]
+
+
+
+        prefix = filter_prefix(_settings.PREFIX)
+
+
+        dynamic_help_view = DynamicHelpView(
+            client=self.client,
+            interaction=inter,
+            prefix=prefix,
+            bot_commands=commands,
+            cogs=self.client.cogs,
+        )
+
+        dynamic_help_view.add_item(DeleteButton())
+
+        self.client.set_user_view(
+            user_id=inter.user.id,
+            view=dynamic_help_view
+        )
+
+        await dynamic_help_view.navegate()
+
+
+        
 
 
 async def setup(c): await c.add_cog(Tools(c))

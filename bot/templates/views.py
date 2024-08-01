@@ -259,19 +259,19 @@ class DynamicHelpView(Pagination):
     def __init__(
             self,
             client: commands.Bot,
-            ctx: commands.Context,
             prefix: Union[str, Sequence[str]],
             bot_commands: Sequence[commands.Command],
             cogs: Dict[str, commands.Cog],
-            user_accessible_commands: Sequence[commands.Command],
+            ctx: Optional[commands.Context] = None,
+            interaction: Optional[Interaction] = None,
     ) -> None:
         
         main_embed = DynamicHelpEmbed(
             client=client,
             ctx=ctx,
+            interaction=interaction,
             prefix=prefix,
             commands=bot_commands,
-            user_accessible_commands=user_accessible_commands
         )
 
         first_cog = cogs[[*cogs][0]]
@@ -312,7 +312,8 @@ class DynamicHelpView(Pagination):
 
         super().__init__(
             get_page=get_page,
-            ctx=ctx
+            ctx=ctx,
+            interaction=interaction
         )
 
         self.add_item(

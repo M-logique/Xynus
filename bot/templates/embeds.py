@@ -1,14 +1,17 @@
 from datetime import datetime as _datetime
 from typing import Any as _Any
+from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
 
 from discord import Color as _Color
 from discord import Embed as _Embed
 from discord import Member as _Member
+from discord import Interaction as _Interaction
 from discord.ext import commands as _commands
 
-from bot.core.settings import settings
+from ..core.settings import settings
+from ..utils.functions import split_camel_case, format_command_params
 
 _color = _Color.from_rgb(*settings.MAIN_COLOR)
 
@@ -88,14 +91,18 @@ class DynamicHelpEmbed(SimpleEmbed):
     def __init__(
             self,
             client: _commands.Bot,
-            ctx: _commands.Context,
             prefix: _Union[_Sequence, str],
-            user_accessible_commands: _Sequence[_commands.Command],
             commands: _Sequence[_commands.Command],
+            ctx: _Optional[_commands.Context] = None,
+            interaction: _Optional[_Interaction] = None,
             **kwrgs
     ):
         
 
+        if interaction:
+            user = interaction.user
+        elif ctx:
+            user = ctx.author
 
         self.single_prefix = prefix[0]
         prefix = f'[{", ".join(prefix)}]'
@@ -104,7 +111,7 @@ class DynamicHelpEmbed(SimpleEmbed):
         
         description = (
             f"・ Prefix: `{prefix}`\n"
-            f"・ Total commands: {len(commands)} | Usable by you (here): {len(user_accessible_commands)}\n"
+            f"・ Total commands: {len(commands)}\n"
             f"・ Type `{self.single_prefix}help <command | module>` for more info\n"
             f"> ***Choose a category to view its commands***"
         )
@@ -122,8 +129,50 @@ class DynamicHelpEmbed(SimpleEmbed):
         )
 
         self.set_footer(
-            icon_url=ctx.author.display_avatar,
+            icon_url=user.display_avatar,
             text="Invoked by {}".format(
-                ctx.author.display_name
+                user.display_name
             )
         )
+
+class CommandInfoEmbed(SimpleEmbed):
+
+    def __init__(
+            self, 
+            client: _commands.Bot, 
+            command: _commands.Command,
+            prefix: list,
+            full_name: str,
+            **kwrgs
+    ):
+
+        description = (
+            "```diff\n- [] = optional argument\n- \u003c\u003e = required argument\n- Do NOT type these when using commands!\n```"
+            f"\n> {command.description if command.description else 'No description yet'}"
+        )
+
+        title = split_camel_case(command.cog_name)
+
+        self.add_field(
+            name="Aliases",
+            inline=False,
+            value=" | ".join([f"`{alias}`" for alias in command.aliases]) if command.aliases else "`No aliases yet`"
+        )
+
+        self.add_field(
+            name="Usage",
+            value=f"`{prefix[0]}{full_name} {format_command_params(command)}`"
+        )
+
+
+        self.set_author(
+            icon_url=client.user.avatar,
+            name=title
+        )
+
+        super().__init__(
+            client=client,
+            description = description,
+            **kwrgs
+        )
+        

@@ -13,6 +13,7 @@ from discord.ext.commands import Context as _Context, Cog as _Cog, Command as _C
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
+from difflib import get_close_matches as _get_close_matches
 
 from ..core.settings import settings as _settings
 
@@ -195,3 +196,52 @@ def get_all_commands(
 
 
 filter_prefix = lambda prefix: [prefix] if isinstance(prefix, str) else [*set([i.strip() for i in filter(lambda x: "@" not in x, prefix)])]
+
+
+def format_command_params(
+        command: _Command
+) -> str:
+    """
+    Formats the parameters of a command into a string signature.
+    """
+
+    # Co-Authored by catssomecat aka ElysianCat
+
+    # Initialize an empty list to collect the signature components
+    signature_parts: _Sequence[str] = []
+
+    # Get the cleaned parameters from the command
+    params: _Dict[str, _Any] = command.clean_params
+
+    for name, param in params.items():
+        # Check if the parameter has no default value and no annotation
+        if param.default is param.empty and param.annotation is param.empty:
+            # Add the parameter as a required one
+            signature_parts.append(f"<{name}>")
+        else:
+            # Initialize the signature for optional parameters
+            param_signature: str = f"[{name}"
+            
+            # Append the default value if it exists
+            if param.default is not param.empty:
+                param_signature += f"={param.default}"
+                
+            param_signature += "]"
+            
+            # Add the optional parameter to the signature parts
+            signature_parts.append(param_signature)
+
+    # Join all the parts into a single string separated by spaces
+    return " ".join(signature_parts)
+
+
+def suggest_similar_strings(
+        target: str, 
+        string_list: _Sequence[str], 
+        n: _Optional[int] = 3, 
+        cutoff: _Optional[int] =0.6
+) -> _Union[str, _Sequence[str]]:
+    close_matches = _get_close_matches(target, string_list, n=n, cutoff=cutoff)
+    
+
+    return close_matches

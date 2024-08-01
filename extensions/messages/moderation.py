@@ -12,7 +12,6 @@ from bot.utils.config import Emojis
 from bot.utils.functions import parse_time
 from bot.templates.embeds import SimpleEmbed
 
-
 _emojis = Emojis()
 
 class Moderation(Cog):
@@ -25,11 +24,9 @@ class Moderation(Cog):
     @commands.hybrid_command(
         name="ban", 
         aliases= ["b", "massban"],
-        description="Mass bans members with an optional delete_days and reason parameter",
-        usage="<Member> [delete_days] [reason]",
-        parent="moderation"
+        description="Mass bans members with an optional delete_days and reason parameter.",
     )
-    
+
     @commands.has_permissions(ban_members=True)
     async def ban(
         self,
@@ -40,7 +37,6 @@ class Moderation(Cog):
         reason: Optional[str] = "No reason provided"
     ):
 
-        # return await ctx.reply("in maintenance")
 
         members = [i.id for i in ctx.guild.members]
         

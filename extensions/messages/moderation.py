@@ -13,6 +13,8 @@ from bot.templates.embeds import SimpleEmbed
 from discord import app_commands
 from bot.utils.functions import chunker
 from datetime import datetime, UTC
+from re import compile, escape
+
 
 _emojis = Emojis()
 
@@ -121,6 +123,7 @@ class Moderation(Cog):
         name="purge",
         fallback="all",
         description="Bulk deletes messages",
+        aliases=["clear"]
     )
     @commands.has_permissions(
         manage_messages = True
@@ -145,12 +148,12 @@ class Moderation(Cog):
 
         chunks = chunker(messages, 100)
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
 
         for chunk in chunks:
             await ctx.channel.delete_messages(chunk)
         try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
             await msg.delete(delay=5)
         except:
             pass
@@ -188,12 +191,12 @@ class Moderation(Cog):
 
         chunks = chunker(messages, 100)
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
 
         for chunk in chunks:
             await ctx.channel.delete_messages(chunk)
         try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
             await msg.delete(delay=5)
         except:
             pass    
@@ -223,14 +226,58 @@ class Moderation(Cog):
 
         chunks = chunker(messages, 100)
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {total_messages} messages.")
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
 
         for chunk in chunks:
             await ctx.channel.delete_messages(chunk)
         try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {total_messages} messages.")
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
             await msg.delete(delay=5)
         except:
             pass
+
+    @purge.command(
+        name="commands",
+        description="Deletes the bulk of messages that contain a command.",
+        with_app_command=True,
+        aliases=["cmds"]
+
+    )
+    @app_commands.describe(
+        prefix = "The prefix of the commands you want to delete."
+    )
+    @app_commands.guilds(*guilds)
+    async def purge_commands(
+        self,
+        ctx: commands.Context,
+        *,
+        prefix: str,
+    ):
+
+        is_command = lambda message: bool(compile(rf'^{escape(prefix)}\w+').match(message))
+
+        messages = [message async for message in ctx.channel.history(limit=500)]
+        messages = [*filter(lambda msg: (datetime.now(UTC) - msg.created_at).days < 14 and (not msg.author.bot and is_command(msg.content)), messages)]
+
+        total_messages = len(messages)
+
+        chunks = chunker(messages, 100)
+
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
+
+        for chunk in chunks:
+            await ctx.channel.delete_messages(chunk)
+        try:
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
+            await msg.delete(delay=5)
+        except:
+            pass
+
+
+
+
+
+
+
 
 async def setup(c): await c.add_cog(Moderation(c))

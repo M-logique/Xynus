@@ -9,8 +9,10 @@ from bot.templates.buttons import DeleteButton
 from bot.templates.views import YesOrNoView
 from bot.templates.cogs import Cog
 from bot.utils.config import Emojis
-from bot.utils.functions import parse_time
 from bot.templates.embeds import SimpleEmbed
+from discord import app_commands
+from bot.utils.functions import chunker
+from datetime import datetime, UTC
 
 _emojis = Emojis()
 
@@ -28,6 +30,7 @@ class Moderation(Cog):
     )
 
     @commands.has_permissions(ban_members=True)
+    @app_commands.guilds(*guilds)
     async def ban(
         self,
         ctx: commands.Context,
@@ -114,4 +117,37 @@ class Moderation(Cog):
             )
         )
     
+    @commands.hybrid_group(
+        name="purge",
+        fallback="all",
+        description="Bulk deletes messages"
+    )
+    @commands.has_permissions(
+        manage_messages = True
+    )
+    @app_commands.guilds(*guilds)
+    async def purge(
+        self,
+        ctx: commands.Context,
+        amount: Optional[int] = 100,
+    ):
+        if amount > 1000 or amount < 2:
+            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+
+        messages = [message async for message in ctx.channel.history(limit=amount+1)]
+        messages = [*filter(lambda msg: (datetime.now(UTC) - msg.created_at).days < 14, messages)]
+
+
+        chunks = chunker(messages, 100)
+
+        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} Started removing {amount} messages.")
+
+        for chunk in chunks:
+            await ctx.channel.delete_messages(chunk)
+        try:
+            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} Removed {amount} messages.")
+            await msg.delete(delay=5)
+        except:
+            pass
+
 async def setup(c): await c.add_cog(Moderation(c))

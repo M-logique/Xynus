@@ -512,6 +512,9 @@ class Tools(Cog):
         description="Displays the help message",
         aliases=["h"]
     )
+    @app_commands.describe(
+        cmd = "The command to get help for. If not specified, shows general help information."
+    )
     @commands.cooldown(1, 5, commands.BucketType.member)
     @check_views
     async def help_cmd(
@@ -623,12 +626,17 @@ class Tools(Cog):
     @app_commands.autocomplete(
         cmd = help_autocomplete
     )
+    @app_commands.describe(
+        cmd = "The command to get help for. If not specified, shows general help information.",
+        ephemeral = "Hide the bot's response from other users. (default: False)",
+    )
     @app_commands.guilds(*guilds)
     @check_views_interaction
     async def help_slash(
         self,
         inter: Interaction,
-        cmd: Optional[str] = None
+        cmd: Optional[str] = None,
+        ephemeral: Optional[bool] = False
     ):
         
         prefix = filter_prefix(_settings.PREFIX)
@@ -663,6 +671,7 @@ class Tools(Cog):
 
             return await inter.response.send_message(
                 embed=embed,
+                ephemeral=ephemeral
             )
 
 
@@ -691,7 +700,9 @@ class Tools(Cog):
             view=dynamic_help_view
         )
 
-        await dynamic_help_view.navegate()
+        await dynamic_help_view.navegate(
+            ephemeral=ephemeral
+        )
 
 
         

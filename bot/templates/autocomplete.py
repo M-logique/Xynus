@@ -1,6 +1,8 @@
-from discord import app_commands, Interaction
+from discord import Interaction, app_commands
 from discord.ext import commands
+
 from ..utils.functions import get_all_commands
+
 
 async def help_autocomplete(
         inter: Interaction,

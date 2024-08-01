@@ -2,7 +2,7 @@ from types import FunctionType
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from aiohttp import ClientSession
-from discord import Button, ButtonStyle, Emoji, Interaction
+from discord import Button, ButtonStyle, Emoji, Interaction, User
 from discord.components import SelectOption
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
@@ -15,8 +15,6 @@ from ..utils.functions import chunker as _chunker
 from ..utils.functions import disable_all_items as _disable_all_items
 from ..utils.functions import get_all_commands as _get_all_commands
 from .embeds import CommandsEmbed, DynamicHelpEmbed
-from discord import User
-
 
 emojis = Emojis()
 

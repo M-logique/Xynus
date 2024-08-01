@@ -6,12 +6,12 @@ from typing import Union as _Union
 
 from discord import Color as _Color
 from discord import Embed as _Embed
-from discord import Member as _Member
 from discord import Interaction as _Interaction
+from discord import Member as _Member
 from discord.ext import commands as _commands
 
 from ..core.settings import settings
-from ..utils.functions import split_camel_case, format_command_params
+from ..utils.functions import format_command_params, split_camel_case
 
 _color = _Color.from_rgb(*settings.MAIN_COLOR)
 

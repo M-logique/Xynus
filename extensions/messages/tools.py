@@ -2,25 +2,23 @@ from time import time
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord import Role, app_commands, utils, Interaction
+from discord import Interaction, Role, app_commands, utils
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
-from bot.core import guilds
+from bot.core import _settings, guilds
 from bot.core.client import Client
+from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.embeds import CommandsEmbed, SimpleEmbed, CommandInfoEmbed
+from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed
 from bot.templates.views import DynamicHelpView, EmojisView, Pagination
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
-                                 remove_duplicates_preserve_order, 
+                                 filter_prefix, get_all_commands,
+                                 remove_duplicates_preserve_order,
                                  suggest_similar_strings)
-from bot.utils.functions import get_all_commands, filter_prefix
-from bot.templates.autocomplete import help_autocomplete
-from bot.core import _settings
-
 
 _emojis = Emojis()
 

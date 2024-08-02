@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from re import compile, escape
-from typing import Optional
+from typing import Optional, Sequence
 
-from discord import Button, Interaction, NotFound, User, app_commands
+from discord import Button, Interaction, NotFound, User, app_commands, Message
 from discord.ext import commands
 
 from bot.core import guilds
@@ -136,25 +136,20 @@ class Moderation(Cog):
         ctx: commands.Context,
         amount: Optional[int] = 100,
     ):
+        await ctx.defer()
+        
         if amount > 1000 or amount < 2:
             return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14, messages)]
 
-        total_messages = len(messages)
 
-        chunks = chunker(messages, 100)
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
-
-        for chunk in chunks:
-            await ctx.channel.delete_messages(chunk)
-        try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
-            await msg.delete(delay=5)
-        except:
-            pass
 
 
     @purge.command(
@@ -173,6 +168,8 @@ class Moderation(Cog):
         ctx: commands.Context,
         message_id: str,
     ):
+        await ctx.defer()
+        
         if not message_id.isnumeric(): 
             return await ctx.reply("Please enter the message id.")
         
@@ -185,23 +182,16 @@ class Moderation(Cog):
         messages = [message async for message in ctx.channel.history(limit=500)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and (msg.id > message_id), messages)]
 
-        total_messages = len(messages)
 
-        chunks = chunker(messages, 100)
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
-
-        for chunk in chunks:
-            await ctx.channel.delete_messages(chunk)
-        try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
-            await msg.delete(delay=5)
-        except:
-            pass    
 
     @purge.command(
         name="bots",
-        description="Bulk deletes messages before the specified message.",
+        description="Bulk deletes messages that sent by bots.",
         with_app_command=True
 
     )
@@ -214,32 +204,26 @@ class Moderation(Cog):
         ctx: commands.Context,
         amount: Optional[int] = 100,
     ):
+        await ctx.defer()
+        
         if amount > 1000 or amount < 2:
             return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and msg.author.bot, messages)]
 
-        total_messages = len(messages)
 
-        chunks = chunker(messages, 100)
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
-
-        for chunk in chunks:
-            await ctx.channel.delete_messages(chunk)
-        try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
-            await msg.delete(delay=5)
-        except:
-            pass
 
     @purge.command(
         name="commands",
         description="Deletes the bulk of messages that contain a command.",
         with_app_command=True,
         aliases=["cmds"]
-
     )
     @app_commands.describe(
         prefix = "The prefix of the commands you want to delete."
@@ -251,11 +235,50 @@ class Moderation(Cog):
         *,
         prefix: str,
     ):
+        await ctx.defer()
 
         is_command = lambda message: bool(compile(rf'^{escape(prefix)}\w+').match(message))
 
         messages = [message async for message in ctx.channel.history(limit=500)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and (not msg.author.bot and is_command(msg.content)), messages)]
+
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
+
+    @purge.command(
+        name="user",
+        description="Deletes the bulk of messages that sent by a user.",
+        with_app_command=True
+    )
+    @app_commands.describe(
+        user = "Please enter the user"
+    )
+    @app_commands.guilds(*guilds)
+    async def purge_user(
+        self,
+        ctx: commands.Context,
+        user: User,
+    ):
+        await ctx.defer()
+
+        messages = [message async for message in ctx.channel.history(limit=500)]
+        messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and msg.author.id == user.id, messages)]
+
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
+
+
+
+    async def _purge(
+            self,
+            messages: Sequence[Message],
+            ctx: commands.Context
+    ):
+        
 
         total_messages = len(messages)
 
@@ -270,11 +293,6 @@ class Moderation(Cog):
             await msg.delete(delay=5)
         except:
             pass
-
-
-
-
-
 
 
 

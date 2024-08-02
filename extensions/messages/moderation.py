@@ -272,6 +272,38 @@ class Moderation(Cog):
         )
 
 
+    @purge.command(
+        name="embeds",
+        description="Deletes the bulk of messages that has an embed.",
+        with_app_command=True
+    )
+    @app_commands.describe(
+        amount = "Enter a number between 2-1000 to bulk delete messages.",
+        only_bots = "if enabled, will only delete the messages of bots."
+    )
+    @app_commands.guilds(*guilds)
+    async def purge_embeds(
+        self,
+        ctx: commands.Context,
+        amount: Optional[int] = 100,
+        only_bots: Optional[bool] = True
+    ):
+        await ctx.defer()
+
+        check_bots = lambda user: True if not only_bots else  user.bot
+
+        if amount > 1000 or amount < 2:
+            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+
+
+        messages = [message async for message in ctx.channel.history(limit=amount)]
+        messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and len(msg.embeds) != 0 and check_bots(msg.author), messages)]
+
+        return await self._purge(
+            messages=messages,
+            ctx=ctx
+        )
+
 
     async def _purge(
             self,

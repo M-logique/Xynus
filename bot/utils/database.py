@@ -610,5 +610,3 @@ class Database:
                 data[key] = {}
             data = data[key]
         return data
-
-

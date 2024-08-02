@@ -528,6 +528,10 @@ class Tools(Cog):
 
 
         cogs = [self.client.cogs[i] for i in self.client.cogs]
+
+
+        cogs = [*filter(lambda cog: cog.get_commands() and cog.get_commands() != [], cogs)]
+
         cog_commands = [get_all_commands(cog=cog) for cog in cogs]
         commands = []
         commands_with_names = {}
@@ -674,6 +678,9 @@ class Tools(Cog):
 
 
         cogs = [self.client.cogs[i] for i in self.client.cogs]
+        cogs = [*filter(lambda cog: cog.get_commands() and cog.get_commands() != [], cogs)]
+
+        
         cog_commands = [get_all_commands(cog=cog) for cog in cogs]
         commands = []
         for command in cog_commands: commands+=[*command]

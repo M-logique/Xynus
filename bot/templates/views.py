@@ -272,6 +272,14 @@ class DynamicHelpView(Pagination):
             commands=bot_commands,
         )
 
+        new_cogs = {}
+        for cog_name in cogs:
+
+            if cogs[cog_name].get_commands() != []:
+                new_cogs[cog_name] = cogs[cog_name]
+
+        cogs = new_cogs
+
         first_cog = cogs[[*cogs][0]]
         self.cog = first_cog
 

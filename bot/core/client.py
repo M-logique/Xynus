@@ -118,7 +118,7 @@ class Client(_commands.Bot):
         if not path.exists("./data"):
             _makedirs("./data")
         
-        self.db = Database("./data/DataBase.db", "main")
+        self.db = Database("./data/DataBase.db", ["main", "guilds"])
         from ..templates.views import PersistentViews
 
         view_collection = PersistentViews(self)

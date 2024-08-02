@@ -11,6 +11,8 @@ test.json
 
 data/*.db
 
+extensions/private/
+
 test.py
 *.session
 *.session-journal

@@ -110,7 +110,8 @@ class Database:
         if keys[-1] in data:
             del data[keys[-1]]
             if data == {}:
-                return self._delete(key=key, table=table)
+                return self._delete(key=root_key, table=table)
+            
             self._set(root_key, root_value, table)
             return True
         

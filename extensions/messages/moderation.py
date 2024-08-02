@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from re import compile, escape
 from typing import Optional, Sequence
 
-from discord import Button, Interaction, NotFound, User, app_commands, Message
+from discord import Button, Interaction, Message, NotFound, User, app_commands
 from discord.ext import commands
 
 from bot.core import guilds

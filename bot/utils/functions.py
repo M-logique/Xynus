@@ -3,6 +3,7 @@ import pkgutil as _pkgutil
 import re as _re
 from datetime import timedelta as _timedelta
 from difflib import get_close_matches as _get_close_matches
+from inspect import Parameter as _Parameter
 from typing import Any as _Any
 from typing import Dict as _Dict
 from typing import Iterator as _Iterator
@@ -17,7 +18,6 @@ from discord.ext.commands import Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
-from inspect import Parameter as _Parameter
 
 from ..core.settings import settings as _settings
 

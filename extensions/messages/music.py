@@ -8,28 +8,28 @@ from bot.templates.cogs import Cog
 from bot.templates.wrappers import check_voice_client
 
 LAVALINKS = [
-    {
-        "identifier": "Akshtt - v4 Free",
-        "password": "admin",
-        "host": "lava.akshat.tech",
-        "port": 443,
-        "secure": True
-    },
-    {
-        "identifier": "Creavite US1 Lavalink",
-        "password": "auto.creavite.co",
-        "host": "us1.lavalink.creavite.co",
-        "port": 20080,
-        "secure": False
-    }
-
     # {
-    #     "identifier": "Lavat Link",
-    #     "password": "youshallnotpass",
-    #     "host": "dv-n1.divahost.net",
-    #     "port": 50664,
-    #     "secure": False
+    #     "identifier": "Akshtt - v4 Free",
+    #     "password": "admin",
+    #     "host": "lava.akshat.tech",
+    #     "port": 443,
+    #     "secure": True
     # },
+    # {
+    #     "identifier": "Creavite US1 Lavalink",
+    #     "password": "auto.creavite.co",
+    #     "host": "us1.lavalink.creavite.co",
+    #     "port": 20080,
+    #     "secure": False
+    # }
+
+    {
+        "identifier": "Lavat Link",
+        "password": "youshallnotpass",
+        "host": "dv-n1.divahost.net",
+        "port": 50664,
+        "secure": False
+    },
 
 ]
 

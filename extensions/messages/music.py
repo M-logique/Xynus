@@ -60,7 +60,7 @@ class Music(Cog):
         tracks: Search = await Playable.search(query)
 
 
-        if len(tracks) == 0:
+        if not tracks:
             return await ctx.reply("Hmm didn't find smth")
 
         track = tracks[0]
@@ -96,11 +96,11 @@ class Music(Cog):
 
         if not isinstance(player, VoiceClient):
             if player.playing or player.paused:
-                return queue_items()
+                return await queue_items()
 
 
         await player.play(items[0])
-        return queue_items(remove_first_one=True)
+        return await queue_items(remove_first_one=True)
 
 
 

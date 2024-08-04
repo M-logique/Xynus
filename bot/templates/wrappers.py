@@ -54,7 +54,7 @@ def check_voice_client(
 ): 
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
-        from wavelink import Player
+        from wavelink import Player, AutoPlayMode
 
         ctx: commands.Context = args[1]
 
@@ -67,7 +67,8 @@ def check_voice_client(
         
 
         if not vc_client:
-            vc_client = await author_voice.channel.connect(cls=Player())
+            vc_client = await author_voice.channel.connect(cls=Player)
+            vc_client.auto_queue = AutoPlayMode.enabled
             
         
         if vc_client and vc_client.channel.id != author_voice.channel.id:

@@ -1,6 +1,6 @@
 from discord import app_commands, VoiceClient
 from discord.ext import commands
-from wavelink import Node, Pool, Search, Playable, Player, NodeReadyEventPayload, TrackStartEventPayload, TrackEndEventPayload
+from wavelink import Node, Pool, Search, Playable, Player, NodeReadyEventPayload, TrackStartEventPayload, TrackEndEventPayload, Playlist
 
 from typing import Union, Optional, List
 from bot.core import Client, guilds
@@ -8,28 +8,20 @@ from bot.templates.cogs import Cog
 from bot.templates.wrappers import check_voice_client
 
 LAVALINKS = [
-    # {
-    #     "identifier": "Akshtt - v4 Free",
-    #     "password": "admin",
-    #     "host": "lava.akshat.tech",
-    #     "port": 443,
-    #     "secure": True
-    # },
-    # {
-    #     "identifier": "Creavite US1 Lavalink",
-    #     "password": "auto.creavite.co",
-    #     "host": "us1.lavalink.creavite.co",
-    #     "port": 20080,
-    #     "secure": False
-    # }
-
     {
-        "identifier": "Lavat Link",
-        "password": "youshallnotpass",
-        "host": "dv-n1.divahost.net",
-        "port": 50664,
-        "secure": False
+        "identifier": "Akshtt - v4 Free",
+        "password": "admin",
+        "host": "lava.akshat.tech",
+        "port": 443,
+        "secure": True
     },
+    {
+        "identifier": "Creavite US1 Lavalink",
+        "password": "auto.creavite.co",
+        "host": "us1.lavalink.creavite.co",
+        "port": 20080,
+        "secure": False
+    }
 
 ]
 
@@ -49,11 +41,11 @@ class Music(Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackStartEventPayload) -> None:
-        self.client.logger.info(f"Started playing {payload.track.title}")
+        await payload.player.home.send(f"Started playing {payload.track.title}")
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: TrackEndEventPayload) -> None:
-        self.client.logger.info(f"Finished playing {payload.track.title}")
+        await payload.player.home.send(f"Finished playing {payload.track.title}")
 
 
 
@@ -85,7 +77,10 @@ class Music(Cog):
             items=track
         )
 
-        await ctx.reply(f"Started playing {track.title}")
+        await ctx.reply(f"**{track.title}** queued")
+        
+        if not hasattr(player, "home"):
+            player.home = ctx.channel
 
         
 
@@ -125,7 +120,7 @@ async def setup(c: Client):
             identifier=i.get("identifier"),
             password=i.get("password"),
             uri="{}://{}:{}".format(
-                "https" if i.get("scure") else "http",
+                "https" if i.get("secure") else "http",
                 i.get("host"),
                 i.get("port")
             ),

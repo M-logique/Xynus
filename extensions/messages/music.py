@@ -1,6 +1,6 @@
 from discord import app_commands, VoiceClient
 from discord.ext import commands
-from wavelink import Node, Pool, Search, Playable, Player, NodeReadyEventPayload, TrackStartEventPayload
+from wavelink import Node, Pool, Search, Playable, Player, NodeReadyEventPayload, TrackStartEventPayload, TrackEndEventPayload
 
 from typing import Union, Optional, List
 from bot.core import Client, guilds
@@ -22,6 +22,15 @@ LAVALINKS = [
         "port": 20080,
         "secure": False
     }
+
+    # {
+    #     "identifier": "Lavat Link",
+    #     "password": "youshallnotpass",
+    #     "host": "dv-n1.divahost.net",
+    #     "port": 50664,
+    #     "secure": False
+    # },
+
 ]
 
 
@@ -41,6 +50,12 @@ class Music(Cog):
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackStartEventPayload) -> None:
         self.client.logger.info(f"Started playing {payload.track.title}")
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_end(self, payload: TrackEndEventPayload) -> None:
+        self.client.logger.info(f"Finished playing {payload.track.title}")
+
+
 
     @commands.hybrid_command(
         name="play",
@@ -110,7 +125,7 @@ async def setup(c: Client):
             identifier=i.get("identifier"),
             password=i.get("password"),
             uri="{}://{}:{}".format(
-                "https" if i.get("port") == 443 else "http",
+                "https" if i.get("scure") else "http",
                 i.get("host"),
                 i.get("port")
             ),

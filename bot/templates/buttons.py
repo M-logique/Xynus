@@ -31,7 +31,7 @@ class DeleteButton(_Button):
     ):
         super().__init__(
             style=_ButtonStyle.red,
-            emoji=emojis.global_emojis["trashcan"]
+            emoji=emojis.get("trashcan")
         )
         
     

@@ -1,9 +1,11 @@
 from functools import wraps
+from types import FunctionType
+from typing import Union
+
+from discord.ext import commands
+from discord import Forbidden
 
 from ..utils.functions import disable_all_items
-from types import FunctionType
-from discord.ext import commands
-from typing import Union
 
 
 def check_views(coro):
@@ -54,9 +56,12 @@ def check_voice_client(
 ): 
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
-        from wavelink import Player, AutoPlayMode
+        from wavelink import AutoPlayMode, Player
+        from bot.core import Client
+
 
         ctx: commands.Context = args[1]
+        client: Client = args[0].client
 
         author_voice = ctx.author.voice
         vc_client: Union[Player, None] = ctx.guild.voice_client
@@ -69,7 +74,15 @@ def check_voice_client(
         if not vc_client:
             vc_client = await author_voice.channel.connect(cls=Player)
             vc_client.auto_queue = AutoPlayMode.enabled
+
+
+
+        if not hasattr(vc_client, "home"):
+            vc_client.home = ctx.channel
             
+        elif vc_client.home != ctx.channel:
+            await ctx.send(f"You can only play songs in {vc_client.home.mention}, as the player has already started there.")
+            return
         
         if vc_client and vc_client.channel.id != author_voice.channel.id:
             return await ctx.reply(f"You need to join <#{vc_client.channel.id}>")

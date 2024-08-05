@@ -110,14 +110,14 @@ class Pagination(_View):
         self.children[4].disabled = self.index == self.total_pages -1
 
     # @button(label="<<", style=ButtonStyle.blurple, disabled=True)
-    @button(emoji=emojis.pagination.get("start"), style=ButtonStyle.blurple, disabled=True, row=0)
+    @button(emoji=emojis.get("start"), style=ButtonStyle.blurple, disabled=True, row=0)
     async def start(self, interaction: Interaction, button: Button):
         self.index = 0
 
         await self.edit_page(interaction)
 
     # @button(label="<", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("previous"), style=ButtonStyle.blurple, disabled=True, row=0)
+    @button(emoji=emojis.get("previous"), style=ButtonStyle.blurple, disabled=True, row=0)
     async def previous(self, interaction: Interaction, button: Button):
         self.index -= 1
         await self.edit_page(interaction)
@@ -135,13 +135,13 @@ class Pagination(_View):
         return await interaction.response.send_modal(modal)
 
     # @button(label=">", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("next"), style=ButtonStyle.blurple, row=0)
+    @button(emoji=emojis.get("next"), style=ButtonStyle.blurple, row=0)
     async def next(self, interaction: Interaction, button: Button):
         self.index += 1
         await self.edit_page(interaction)
 
     # @button(label=">>", style=ButtonStyle.blurple)
-    @button(emoji=emojis.pagination.get("end"), style=ButtonStyle.blurple, row=0)
+    @button(emoji=emojis.get("end"), style=ButtonStyle.blurple, row=0)
     async def end(self, interaction: Interaction, button: Button):
 
         self.index = self.total_pages -1
@@ -171,7 +171,7 @@ class EmojisView(Pagination):
 
         super().__init__(get_page, interaction, ctx)
     
-    @button(label="Steal this one", style=ButtonStyle.green, emoji=emojis.global_emojis["hand"])
+    @button(label="Steal this one", style=ButtonStyle.green, emoji=emojis.get("hand"))
     async def add_emoji(
         self,
         interaction: Interaction,
@@ -181,8 +181,8 @@ class EmojisView(Pagination):
             thinking=True
         )
 
-        check_mark = emojis.global_emojis["checkmark"]
-        cross_mark = emojis.global_emojis["crossmark"]
+        check_mark = emojis("checkmark")
+        cross_mark = emojis("crossmark")
 
         emoji = self.emojis[self.index]
         url = "https://cdn.discordapp.com/emojis/{}.png".format(emoji.get("id"))
@@ -376,7 +376,7 @@ class DynamicHelpView(Pagination):
                 SelectOption(
                     label="Main Page",
                     value="home",
-                    emoji=emojis.global_emojis["house"]
+                    emoji=emojis.get("house")
                 )
             ]
 

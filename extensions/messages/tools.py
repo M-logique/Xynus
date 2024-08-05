@@ -25,7 +25,7 @@ _emojis = Emojis()
 class Tools(Cog):
 
     def __init__(self, client: Client) -> None:
-        self.emoji = _emojis.global_emojis["tools"]
+        self.emoji = _emojis.get("tools")
         super().__init__(client)
     
     @commands.hybrid_command(
@@ -97,9 +97,9 @@ class Tools(Cog):
 
             return kwrgs, len(extracted_emojis)
         
-        check_mark = _emojis.global_emojis["checkmark"]
-        cross_mark = _emojis.global_emojis["crossmark"]
-        exclamation = _emojis.global_emojis["exclamation"]
+        check_mark = _emojis.get("checkmark")
+        cross_mark = _emojis.get("crossmark")
+        exclamation = _emojis.get("exclamation")
 
         if extracted_emojis != []:
             if force_add:
@@ -188,7 +188,7 @@ class Tools(Cog):
 
             return await emojis_view.navegate()
         
-        return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any emoji!")
+        return await ctx.reply(f"{_emojis.get('exclamation')} Didn't find any emoji!")
 
 
     @commands.hybrid_group(
@@ -252,7 +252,7 @@ class Tools(Cog):
 
         if bans == []:
 
-            return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any banned member in this server")
+            return await ctx.reply(f"{_emojis('exclamation')} Didn't find any banned member in this server")
 
         bans = [
             "`[{}]`: `{}` - `{}`{}".format(
@@ -343,7 +343,7 @@ class Tools(Cog):
 
         if muted == []:
 
-            return await ctx.reply(f"{_emojis.global_emojis['exclamation']} Didn't find any muted member in this server")
+            return await ctx.reply(f"{_emojis.get('exclamation')} Didn't find any muted member in this server")
 
         
 

@@ -20,7 +20,7 @@ class Moderation(Cog):
 
     def __init__(self, client: Client) -> None:
         super().__init__(client)
-        self.emoji = _emojis.global_emojis["shield"]
+        self.emoji = _emojis.get("shield")
 
 
     @commands.hybrid_command(
@@ -69,12 +69,12 @@ class Moderation(Cog):
             else:
                 and_more = lambda users: f"and {len(users) - 5} more" if len(users) > 5 else ""
                 get_names = lambda users: [i.name for i in users]
-                failed_to_ban = f"\n{_emojis.global_emojis.get('crossmark')} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != [] else ""
+                failed_to_ban = f"\n{_emojis.get('crossmark')} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != [] else ""
 
 
                 embed = SimpleEmbed(
                     self.client,
-                    description=f"{_emojis.global_emojis.get('checkmark')} | Banned {', '.join(get_names(success)[:5:])} {and_more(success)}{failed_to_ban}"
+                    description=f"{_emojis.get('checkmark')} | Banned {', '.join(get_names(success)[:5:])} {and_more(success)}{failed_to_ban}"
                 )
                 embed.set_footer(
                     text=f"Invoked by {ctx.author.display_name}",
@@ -139,7 +139,7 @@ class Moderation(Cog):
         await ctx.defer()
         
         if amount > 1000 or amount < 2:
-            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+            return await ctx.reply(f"{_emojis.get('crossmark')} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14, messages)]
@@ -177,7 +177,7 @@ class Moderation(Cog):
         try:
             await ctx.channel.fetch_message(message_id)
         except NotFound:
-            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} Did not find the specified message.")
+            return await ctx.reply(f"{_emojis.get('crossmark')} Did not find the specified message.")
         
         messages = [message async for message in ctx.channel.history(limit=500)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and (msg.id > message_id), messages)]
@@ -207,7 +207,7 @@ class Moderation(Cog):
         await ctx.defer()
         
         if amount > 1000 or amount < 2:
-            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+            return await ctx.reply(f"{_emojis.get('crossmark')} You can only remove between 2 and 1000 messages.")
 
         messages = [message async for message in ctx.channel.history(limit=amount+1)]
         messages = [*filter(lambda msg: (datetime.now(timezone.utc) - msg.created_at.replace(tzinfo=timezone.utc)).days < 14 and msg.author.bot, messages)]
@@ -293,7 +293,7 @@ class Moderation(Cog):
         check_bots = lambda user: True if not only_bots else  user.bot
 
         if amount > 1000 or amount < 2:
-            return await ctx.reply(f"{_emojis.global_emojis['crossmark']} You can only remove between 2 and 1000 messages.")
+            return await ctx.reply(f"{_emojis.get('crossmark')} You can only remove between 2 and 1000 messages.")
 
 
         messages = [message async for message in ctx.channel.history(limit=amount)]
@@ -316,12 +316,12 @@ class Moderation(Cog):
 
         chunks = chunker(messages, 100)
 
-        msg = await ctx.reply(f"{_emojis.global_emojis['exclamation']} | Started removing {total_messages} messages.")
+        msg = await ctx.reply(f"{_emojis.get('exclamation')} | Started removing {total_messages} messages.")
 
         for chunk in chunks:
             await ctx.channel.delete_messages(chunk)
         try:
-            await msg.edit(content=f"{_emojis.global_emojis['checkmark']} | Removed {total_messages} messages.")
+            await msg.edit(content=f"{_emojis.get('checkmark')} | Removed {total_messages} messages.")
             await msg.delete(delay=5)
         except:
             pass

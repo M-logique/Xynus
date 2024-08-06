@@ -1,6 +1,6 @@
-from typing import List, Optional, Union, cast
+from typing import List, Optional, Union, Any
 
-from discord import VoiceClient, app_commands
+from discord import VoiceClient, app_commands, Member
 from discord.ext import commands
 from wavelink import (Node, NodeReadyEventPayload, Playable, Player, TrackSource, Playlist,
                       Pool, Search, TrackEndEventPayload,
@@ -8,12 +8,13 @@ from wavelink import (Node, NodeReadyEventPayload, Playable, Player, TrackSource
 
 from bot.core import Client, guilds
 from bot.templates.cogs import Cog
-from bot.templates.wrappers import check_voice_client
+from bot.templates.wrappers import check_voice_client, check_for_player
 from bot.utils.config import Emojis
+from bot.templates.embeds import SimpleEmbed
 
 
 emojis = Emojis()
-_seek, _play = emojis.get("end"), emojis.get("next")
+_seek, _play, _note = emojis.get("end"), emojis.get("next"), emojis.get("music_note")
 
 
 
@@ -65,13 +66,25 @@ class Music(Cog):
         if not hasattr(payload.player, "home"):
             return
         
-        await payload.player.home.send(f"Started playing {payload.track.title}")
+        embed = self._gen_embed(
+            description=f"{_note} Started playing [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'})`"
+        )
+
+        await payload.player.home.send(embed=embed)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload: TrackEndEventPayload) -> None:
         if not hasattr(payload.player, "home"):
             return    
+        
 
+        cached_value = self.client.db._traverse_dict(
+            self.cache,
+            [payload.player.guild.id, "queue"],
+            create_missing=True
+        )
+        if cached_value.get("queue"):
+            self.cache[payload.player.guild.id]["queue"].pop(0)
         await payload.player.home.send(f"Finished playing {payload.track.title}")
 
 
@@ -89,7 +102,6 @@ class Music(Cog):
         *,
         query: str
     ):
-        
         
         player: Player = ctx.guild.voice_client
         tracks: Search = await Playable.search(query, source=TrackSource.SoundCloud)
@@ -112,7 +124,9 @@ class Music(Cog):
 
         length = self._milliseconds_to_minutes_seconds(track.length)
 
-        await ctx.reply(f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) queued - {length}")
+        player.queue._items
+
+        # await ctx.reply(f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) queued - {length}")
         
 
     @commands.hybrid_command(
@@ -120,6 +134,7 @@ class Music(Cog):
             aliases=["clearqueue"]
     )
     @app_commands.guilds(*guilds)
+    @check_for_player
     async def stop(
         self,
         ctx: commands.Context
@@ -127,14 +142,11 @@ class Music(Cog):
         
         player: Union[Player, None] = ctx.voice_client
         
-
-        if not player:
-            return await ctx.reply("Didn't find any player here.")
-        
-        
         player.queue.clear()
-        await player.skip(force=True)
+        del self.cache[ctx.guild.id]["queue"]
 
+        await player.skip(force=True)
+        
         
 
 
@@ -145,13 +157,12 @@ class Music(Cog):
             ctx: commands.Context
     ):
         
-        queue = self.client.db._traverse_dict(
-            self.cache,
-            [ctx.guild.id, "queue"],
-            create_missing=True
+        queue = self._get_cache(
+            ctx.guild.id,
+            "queue"
         )
 
-        if queue == {}:
+        if not queue:
             self.cache[ctx.guild.id]["queue"] = []
 
 
@@ -184,6 +195,40 @@ class Music(Cog):
         
         await player.play(items[0])
         return await queue_items(remove_first_one=True)
+
+    def _gen_embed(
+            self,
+            description: str,
+            author: Optional[Member] = None,
+    ) -> SimpleEmbed:
+        embed = SimpleEmbed(
+            self.client,
+            description=description
+        )
+
+        if author:
+            embed.set_footer(
+                text=f"Invoked by {author.display_name}",
+                icon_url=author.display_avatar
+            )
+        else:
+            embed._footer = {}
+
+        return embed
+
+    def _get_cache(
+            self,
+            guild_id: int,
+            value: str
+    ) -> Union[None, Any]:
+
+        value: dict = self.client.db._traverse_dict(
+            self.cache,
+            [guild_id, value],
+            create_missing=True
+        )
+
+        return value.get(value)
 
     def _milliseconds_to_minutes_seconds(
             self,

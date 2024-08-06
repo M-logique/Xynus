@@ -57,11 +57,9 @@ def check_voice_client(
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
         from wavelink import AutoPlayMode, Player
-        from bot.core import Client
 
 
         ctx: commands.Context = args[1]
-        client: Client = args[0].client
 
         author_voice = ctx.author.voice
         vc_client: Union[Player, None] = ctx.guild.voice_client
@@ -81,12 +79,36 @@ def check_voice_client(
             vc_client.home = ctx.channel
             
         elif vc_client.home != ctx.channel:
-            await ctx.send(f"You can only play songs in {vc_client.home.mention}, as the player has already started there.")
-            return
+            vc_client.home == ctx.channel
         
         if vc_client and vc_client.channel.id != author_voice.channel.id:
             return await ctx.reply(f"You need to join <#{vc_client.channel.id}>")
         
+
+
+
+        return await coro(*args, **kwrgs)
+    
+    return wrapper
+
+
+def check_for_player(
+        coro: FunctionType
+): 
+    @wraps(coro)
+    async def wrapper(*args, **kwrgs):
+        from wavelink import Player
+
+
+        ctx: commands.Context = args[1]
+
+        author_voice = ctx.author.voice
+
+        player: Union[Player, None] = ctx.voice_client
+        
+
+        if not player:
+            return await ctx.reply("Didn't find any player here.")
 
 
 

@@ -376,7 +376,7 @@ class Music(Cog):
     @commands.hybrid_command(
             name="remove",
             description="Remove the specified track from the queue.",
-            aliases=["r"]
+            aliases=["rm"]
     )
     @app_commands.describe(
         position = "The song's position in the queue."

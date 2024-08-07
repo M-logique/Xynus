@@ -15,6 +15,8 @@ from ..utils.functions import chunker as _chunker
 from ..utils.functions import disable_all_items as _disable_all_items
 from ..utils.functions import get_all_commands as _get_all_commands
 from .embeds import CommandsEmbed, DynamicHelpEmbed
+from bot import __version__ as version, __name__ as name
+
 
 emojis = Emojis()
 
@@ -270,6 +272,10 @@ class DynamicHelpView(Pagination):
             interaction=interaction,
             prefix=prefix,
             commands=bot_commands,
+        )
+
+        main_embed.set_author(
+            name=f"{name} - V{version}"
         )
 
         new_cogs = {}

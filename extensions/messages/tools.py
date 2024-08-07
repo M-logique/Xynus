@@ -572,6 +572,7 @@ class Tools(Cog):
                     prefix=prefix
                 )
 
+
                 kwrgs = {
                     "embed": embed
                 }
@@ -665,10 +666,6 @@ class Tools(Cog):
                 command=command,
                 prefix=prefix,
                 full_name=cmd
-            )
-
-            embed.set_author(
-                name=f"{name} - V{version}"
             )
 
 

@@ -84,7 +84,7 @@ def check_voice_client(
             vc_client.home = ctx.channel
             
         elif vc_client.home != ctx.channel:
-            vc_client.home == ctx.channel
+            vc_client.home = ctx.channel
         
         if vc_client and vc_client.channel.id != author_voice.channel.id:
             return await ctx.reply(f"You need to join <#{vc_client.channel.id}>")

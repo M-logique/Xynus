@@ -2,6 +2,7 @@ from os import makedirs as _makedirs
 from os import path
 
 from discord import Activity as _Activity
+from discord import Status
 from discord import ActivityType as _ActivityType
 from discord import AllowedMentions as _AllowedMentions
 from discord import Intents as _Intents
@@ -9,7 +10,7 @@ from discord import Object as _Object
 from discord.ext import commands as _commands
 from discord.ui import View as _View
 
-from .. import __name__ as name
+from .. import __name__ as name, __version__ as version
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import Database
 from ..utils.functions import list_all_dirs, search_directory
@@ -44,7 +45,15 @@ class Client(_commands.Bot):
     async def on_ready(self):
 
         
-        await self.change_presence(activity=_Activity(type=_ActivityType.streaming, url="https://twitch.tv/discord", name="TTK 2 - ?help"))
+        await self.change_presence(
+            activity=_Activity(
+                type=_ActivityType.streaming, 
+                name=f"?help - {name} V{version}"
+            ),
+            status=Status.idle
+        )
+
+
         if self.cogs != {}: return self.logger.warn("Skipped loading cogs: Reconnecting")
 
         self.logger.success(f"Discord Client Logged in as {self.user.name}")

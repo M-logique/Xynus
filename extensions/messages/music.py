@@ -212,7 +212,7 @@ class Music(Cog):
 
             embed = self._gen_embed(
                 author=ctx.author,
-                description=f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`] **queued at position `#{len(queue)+1}`**"
+                description=f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`] **queued at position `#{len(queue)}`**"
             )
 
         if track.artwork:
@@ -396,15 +396,19 @@ class Music(Cog):
         )
 
         if not queue:
-            return await ctx.reply("There is no more song in the queue.")
+            return await ctx.reply("Didn't remove the song as the queue is empty.")
 
 
         if position < 1 or position > len(queue):
-
             return await ctx.reply("Provide a valid position please.")
         
 
+        
+        track = queue[position-1]
         self.cache[ctx.guild.id]["queue"].pop(position-1)
+
+        await self._reply(ctx, f"{_ckm} Removed the song `{track.title}` from the queue.")
+        
 
 
     @commands.hybrid_command(

@@ -47,7 +47,7 @@ class Client(_commands.Bot):
         
         await self.change_presence(
             activity=_Activity(
-                type=_ActivityType.streaming, 
+                type=_ActivityType.watching, 
                 name=f"?help - {name} V{version}"
             ),
             status=Status.idle

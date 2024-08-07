@@ -1,8 +1,6 @@
 from typing import Any, Dict, List, Optional, Union
 
-from discord import (Member, Message, VoiceClient, VoiceState, app_commands,
-                     utils)
-from discord.abc import GuildChannel
+from discord import Member, Message, VoiceClient, app_commands
 from discord.ext import commands
 from wavelink import (Node, NodeReadyEventPayload, Playable, Player, Playlist,
                       Pool, Search, TrackEndEventPayload, TrackSource,

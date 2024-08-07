@@ -1,2 +1,2 @@
-__name__ = "TTK-2"
+__name__ = "Xynus"
 __version__ = "1.5.4" 

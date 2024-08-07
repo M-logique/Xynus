@@ -399,12 +399,12 @@ class Music(Cog):
             return await ctx.reply("There is no more song in the queue.")
 
 
-        if position < 1 or position+1 > len(queue):
+        if position < 1 or position > len(queue):
 
             return await ctx.reply("Provide a valid position please.")
         
 
-        self.cache[ctx.guild.id]["queue"].pop(position+1)
+        self.cache[ctx.guild.id]["queue"].pop(position-1)
 
 
     @commands.hybrid_command(

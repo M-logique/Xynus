@@ -1,20 +1,21 @@
-from typing import List, Optional, Union, Any, Dict
+from typing import Any, Dict, List, Optional, Union
 
-from discord import VoiceClient, app_commands, Member, Message
+from discord import (Member, Message, VoiceClient, VoiceState, app_commands,
+                     utils)
+from discord.abc import GuildChannel
 from discord.ext import commands
-from wavelink import (Node, NodeReadyEventPayload, Playable, Player, TrackSource, Playlist,
-                      Pool, Search, TrackEndEventPayload,
+from wavelink import (Node, NodeReadyEventPayload, Playable, Player, Playlist,
+                      Pool, Search, TrackEndEventPayload, TrackSource,
                       TrackStartEventPayload)
 
 from bot.core import Client, guilds
+from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
-from bot.templates.wrappers import check_voice_client, check_for_player
-from bot.utils.config import Emojis
 from bot.templates.embeds import SimpleEmbed
 from bot.templates.views import Pagination
-from bot.templates.buttons import DeleteButton
+from bot.templates.wrappers import check_for_player, check_voice_client
+from bot.utils.config import Emojis
 from bot.utils.functions import chunker
-
 
 emojis = Emojis()
 _note = emojis.get("music_note")
@@ -58,6 +59,7 @@ class Music(Cog):
         self.cache = {}
         super().__init__(client)
 
+    # Listeners
     
     @commands.Cog.listener()
     async def on_wavelink_node_ready(
@@ -114,6 +116,42 @@ class Music(Cog):
 
             del self.cache[payload.player.guild.id]    
 
+    # Commands
+
+
+
+    @commands.hybrid_command(
+            name="join",
+            description="Make the bot join your current voice channel.",
+            aliases=["connect", "j"]
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds(*guilds)
+    @check_voice_client
+    async def join(
+        self,
+        ctx: commands.Context
+    ):
+        
+        return await self._reply(ctx, f"Joined to {ctx.author.voice.channel}.")
+
+    @commands.hybrid_command(
+            name="leave",
+            description="Clears the queue and leaves the voice channel.",
+            aliases=["disconnect", "dc"]
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def leave(
+        self,
+        ctx: commands.Context
+    ):
+        player: Union[Player, None] = ctx.guild.voice_client
+        await player.disconnect()
+
+        return await self._reply(ctx, f"Disconnected from {ctx.author.voice.channel}.")
+    
 
     @commands.hybrid_command(
         name="play",
@@ -314,6 +352,7 @@ class Music(Cog):
     ):
         
         player: Union[Player, None] = ctx.voice_client
+
         try:
             total_ms = self._time_to_milliseconds(time)
         except:
@@ -321,11 +360,11 @@ class Music(Cog):
 
 
         if total_ms > player.current.length:
-
             total_ms = player.current.length
 
-        
-        await self._reply(ctx, f"Seeking `{player.current.title}` to {self._time_to_milliseconds(total_ms)}.")
+        await player.seek(total_ms)
+
+        await self._reply(ctx, f"Seeking `{player.current.title}` to {self._milliseconds_to_time(total_ms)}.")
 
 
     @commands.hybrid_command(
@@ -350,6 +389,7 @@ class Music(Cog):
         embed = self._gen_embed(
             description=(
                 f"[**{current.title}**]({current.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`]\n"
+                f"**Author**: `{current.author}`\n\n"
                 f"{progress_bar}"
             ),
             author=ctx.author
@@ -423,6 +463,8 @@ class Music(Cog):
 
         await pagination_view.navegate()
 
+
+    # Private functions
 
     async def _reply(
             self,

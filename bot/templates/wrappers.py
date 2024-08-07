@@ -60,6 +60,7 @@ def check_voice_client(
 
 
         ctx: commands.Context = args[1]
+        await ctx.defer()
 
         author_voice = ctx.author.voice
         vc_client: Union[Player, None] = ctx.guild.voice_client
@@ -102,6 +103,8 @@ def check_for_player(
 
         ctx: commands.Context = args[1]
 
+        await ctx.defer()
+
         author_voice = ctx.author.voice
 
         player: Union[Player, None] = ctx.voice_client
@@ -110,6 +113,11 @@ def check_for_player(
         if not player:
             return await ctx.reply("Didn't find any player here.")
 
+        if not author_voice or not author_voice.channel:
+            return await ctx.reply("You need to join a voice channel first.")
+        
+        if player and player.channel.id != author_voice.channel.id:
+            return await ctx.reply(f"You need to join <#{player.channel.id}>")
 
 
         return await coro(*args, **kwrgs)

@@ -1,6 +1,6 @@
-from typing import List, Optional, Union, Any
+from typing import List, Optional, Union, Any, Dict
 
-from discord import VoiceClient, app_commands, Member
+from discord import VoiceClient, app_commands, Member, Message
 from discord.ext import commands
 from wavelink import (Node, NodeReadyEventPayload, Playable, Player, TrackSource, Playlist,
                       Pool, Search, TrackEndEventPayload,
@@ -11,10 +11,15 @@ from bot.templates.cogs import Cog
 from bot.templates.wrappers import check_voice_client, check_for_player
 from bot.utils.config import Emojis
 from bot.templates.embeds import SimpleEmbed
+from bot.templates.views import Pagination
+from bot.templates.buttons import DeleteButton
+from bot.utils.functions import chunker
 
 
 emojis = Emojis()
-_seek, _play, _note = emojis.get("end"), emojis.get("next"), emojis.get("music_note")
+_note = emojis.get("music_note")
+_ckm = emojis.get("checkmark")
+_csm = emojis.get("crossmark")
 
 
 
@@ -63,12 +68,30 @@ class Music(Cog):
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackStartEventPayload) -> None:
-        if not hasattr(payload.player, "home"):
+        queue = self._get_cache(
+            payload.player.guild.id,
+            "queue"
+        )
+        
+        
+        if not hasattr(payload.player, "home") or not queue:
             return
         
-        embed = self._gen_embed(
-            description=f"{_note} Started playing [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'})`"
-        )
+        
+
+        length = self._milliseconds_to_time(payload.track.length)
+
+        kwrgs = {
+            "description": f"{_note} **Started playing** [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]"
+        }
+
+
+        if queue:
+            kwrgs["author"] = queue[0]["by"]
+        
+
+        embed = self._gen_embed(**kwrgs)
+
 
         await payload.player.home.send(embed=embed)
 
@@ -78,22 +101,29 @@ class Music(Cog):
             return    
         
 
-        cached_value = self.client.db._traverse_dict(
-            self.cache,
-            [payload.player.guild.id, "queue"],
-            create_missing=True
+        cached_value = self._get_cache(
+            payload.player.guild.id,
+            "queue"
         )
-        if cached_value.get("queue"):
-            self.cache[payload.player.guild.id]["queue"].pop(0)
-        await payload.player.home.send(f"Finished playing {payload.track.title}")
 
+        if cached_value:
+            await payload.player.play(cached_value[0].get("track"))
+            self.cache[payload.player.guild.id]["queue"].pop(0)
+        
+        elif not payload.player.queue:
+
+            del self.cache[payload.player.guild.id]    
 
 
     @commands.hybrid_command(
         name="play",
-        aliases=["p"]
+        aliases=["p"],
+        description="Playing a track or playlist by providing a link or search query."
     )
     @commands.guild_only()
+    @app_commands.describe(
+        query = "Provide a name or url to find and play track(s)."
+    )
     @app_commands.guilds(*guilds)
     @check_voice_client
     async def play(
@@ -108,7 +138,7 @@ class Music(Cog):
 
 
         if not tracks:
-            return await ctx.reply("Hmm didn't find anything.")
+            return await ctx.reply("didn't find anything.")
 
         if isinstance(tracks, Playlist):
             track = tracks
@@ -122,17 +152,38 @@ class Music(Cog):
         )
 
 
-        length = self._milliseconds_to_minutes_seconds(track.length)
+        length = self._milliseconds_to_time(track.length)
 
-        player.queue._items
+        queue = self._get_cache(
+            ctx.guild.id,
+            "queue"
+        )
 
-        # await ctx.reply(f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) queued - {length}")
+        if not queue:
+            embed = self._gen_embed(
+                author=ctx.author,
+                description=f"{_note} **Started playing** [`{track.title}`]({track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]",
+            )
+        else:
+
+            embed = self._gen_embed(
+                author=ctx.author,
+                description=f"[**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`] **queued at position `#{len(queue)+1}`**"
+            )
+
+        if track.artwork:
+            embed.set_thumbnail(url=track.artwork)
+
+
+        await ctx.reply(embed=embed)
         
 
     @commands.hybrid_command(
             name="stop", 
-            aliases=["clearqueue"]
+            aliases=["clearqueue"],
+            descriptipn="Stop and clear the queue."
     )
+    @app_commands.guild_only()
     @app_commands.guilds(*guilds)
     @check_for_player
     async def stop(
@@ -146,9 +197,252 @@ class Music(Cog):
         del self.cache[ctx.guild.id]["queue"]
 
         await player.skip(force=True)
+        await self._reply(ctx, f"{_ckm} Stopped the player.")
         
+    @commands.hybrid_command(
+            name="skip", 
+            aliases=["sk"]
+    )
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def skip(
+        self,
+        ctx: commands.Context
+    ):
+        
+        player: Union[Player, None] = ctx.voice_client
+
+        await player.skip(force=False)
+        
+        queue = self._get_cache(
+            ctx.guild.id,
+            "queue"
+        )
+
+        if not queue:
+            return await self._reply(ctx, f"Stopping the player as there is no more track remaining.")
+        
+        track: Playable = queue[0]["track"]
+        track_author: Member = queue[0]["by"]
+
+        track_length = self._milliseconds_to_time(track.length)
+
+        await self._reply(ctx, f"{_ckm} Skipped to [`{track.title}`]({track.uri}) - [`{track_length}]`. (Added by {track_author.mention})")
+
+    
+    @commands.hybrid_command(
+            name="volume", 
+            aliases=["v"],
+            description="Change the volume of currently playing music."
+    )
+    @app_commands.describe(
+        number = "Provide a volume number."
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def volume(
+        self,
+        ctx: commands.Context,
+        number: int
+    ):
+        if number < 0 or number > 1000:
+            return await self._reply(ctx, "Enter a number between 0-1000")
+        
+        player: Union[Player, None] = ctx.voice_client
+
+        await player.set_volume(number)
+
+
+        await self._reply(ctx, f"{_ckm} Now the player volume is `{number}`")
+
+
+
+    @commands.hybrid_command(
+            name="pause",
+            description="Pause the currently playing music."
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def pause(
+        self,
+        ctx: commands.Context,
+    ):
+        
+        player: Union[Player, None] = ctx.voice_client
+        if not player.paused:
+            await player.pause(True)
+            return await self._reply(ctx, f"{_ckm} Paused the player.")
+        
+        await self._reply(ctx, f"{_csm} Player is already paused.")
+    
+    @commands.hybrid_command(
+            name="resume",
+            aliases=["r"],
+            description="Resume the currently playing music."
+    )
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def resume(
+        self,
+        ctx: commands.Context,
+    ):
+        
+        player: Union[Player, None] = ctx.voice_client
+        if player.paused:
+            await player.pause(False)
+            return await self._reply(ctx, f"{_ckm} Resumed the player.")
         
 
+
+        await self._reply(ctx, f"{_csm} Player is not paused.")
+
+    @commands.hybrid_command(
+            name="seek",
+            description="Set the position of the playing track."
+    )
+    @app_commands.guilds(*guilds)
+    @app_commands.describe(
+        time = "Length of time. Example: 1:30"
+    )
+    @check_for_player
+    async def seek(
+        self,
+        ctx: commands.Context,
+        time: str
+    ):
+        
+        player: Union[Player, None] = ctx.voice_client
+        try:
+            total_ms = self._time_to_milliseconds(time)
+        except:
+            return await ctx.reply("Time must be formatted as `mm:ss` or `hh:mm:ss`")
+
+
+        if total_ms > player.current.length:
+
+            total_ms = player.current.length
+
+        
+        await self._reply(ctx, f"Seeking `{player.current.title}` to {self._time_to_milliseconds(total_ms)}.")
+
+
+    @commands.hybrid_command(
+            name="nowplaying",
+            aliases=["np"], 
+            description="Show the currently playing song."
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def nowplaying(
+        self,
+        ctx: commands.Context,
+    ):
+        
+        player: Union[Player, None] = ctx.voice_client
+        current = player.current
+        length = self._milliseconds_to_time(current.length)
+        progress_bar = self._show_progress(player.position, current.length)
+
+
+        embed = self._gen_embed(
+            description=(
+                f"[**{current.title}**]({current.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`]\n"
+                f"{progress_bar}"
+            ),
+            author=ctx.author
+        )
+
+        if current.artwork:
+            embed.set_thumbnail(url=current.artwork)
+
+
+        await ctx.reply(
+            embed=embed
+        )
+
+    @commands.hybrid_command(
+            name="queue",
+            aliases=["q"],
+            description="Display a list of current songs in the queue."
+    )
+    @app_commands.guilds(*guilds)
+    @check_for_player
+    async def queue(
+        self,
+        ctx: commands.Context,
+    ):
+        
+        queue = self._get_cache(
+            ctx.guild.id,
+            "queue"
+        )
+
+        if not queue:
+            return await self._reply(ctx, f"{_csm} There is not any track in the queue.")
+
+        async def get_page(
+                index: int
+        ):
+            
+            chunks = chunker(queue, 10)
+
+            txt = ""
+            track_index = index * 10
+
+            for value in chunks[index]:
+                
+                track_index+=1
+
+                track = value.get("track")
+                track_author = value.get("by")
+
+                length = self._milliseconds_to_time(track.length)
+
+                txt+=f"[`{track_index}`] [**{track.title}**]({track.uri or 'https://github.com/M-logique/TTK-2'}) [`{length}`] - {track_author.mention}\n"
+
+
+            embed = self._gen_embed(
+                description=txt
+            )
+
+            kwrgs = {
+                "embed": embed
+            }
+
+            return kwrgs, len(chunks)
+        
+        pagination_view = Pagination(
+            get_page=get_page,
+            ctx=ctx,
+        )
+
+        pagination_view.add_item(DeleteButton())
+
+        await pagination_view.navegate()
+
+
+    async def _reply(
+            self,
+            ctx: commands.Context,
+            text: str,
+            /
+    ) -> Message:
+
+        text = f"**{text}**"        
+
+        embed = self._gen_embed(
+            description=text,
+            author=ctx.author
+        )
+
+        
+
+        return await ctx.reply(
+            embed=embed
+        )
 
     async def _add_track(
             self,
@@ -208,7 +502,7 @@ class Music(Cog):
 
         if author:
             embed.set_footer(
-                text=f"Invoked by {author.display_name}",
+                text=f"Requested by {author.display_name}",
                 icon_url=author.display_avatar
             )
         else:
@@ -216,28 +510,75 @@ class Music(Cog):
 
         return embed
 
+    def _show_progress(
+            self,
+            position: int,
+            length: int,
+            /
+    ) -> str:
+
+        bar_length = 20
+        progress = int((position / length) * bar_length)
+        
+
+        bar = '▬' * progress + '🔘' + '▬' * (bar_length - progress - 1)
+        
+
+        return f"[{bar}] `{self._milliseconds_to_time(position)}/{self._milliseconds_to_time(length)}`"
+
+
     def _get_cache(
             self,
             guild_id: int,
             value: str
     ) -> Union[None, Any]:
 
-        value: dict = self.client.db._traverse_dict(
+        cached_value: Dict = self.client.db._traverse_dict(
             self.cache,
             [guild_id, value],
             create_missing=True
         )
 
-        return value.get(value)
 
-    def _milliseconds_to_minutes_seconds(
+        return cached_value.get(value)
+
+    def _milliseconds_to_time(
             self,
-            ms: int
-    ):
+            ms: int, 
+            /
+    ) -> str:
         seconds = ms // 1000
         minutes = seconds // 60
         seconds = seconds % 60
+
+
         return f"{minutes:02}:{seconds:02}"
+
+
+    def _time_to_milliseconds(
+            self,
+            time_str: str,
+            /
+
+    ) -> int:
+        
+
+        parts = time_str.split(':')
+        
+        hours = 0
+        minutes = 0
+        seconds = 0
+        
+        if len(parts) == 3:
+            hours, minutes, seconds = map(int, parts)
+        elif len(parts) == 2:
+            minutes, seconds = map(int, parts)
+        elif len(parts) == 1:
+            seconds = int(parts[0])
+
+    
+        total_milliseconds = (hours * 3600 * 1000) + (minutes * 60 * 1000) + (seconds * 1000)
+        return total_milliseconds
 
 
 async def setup(c: Client):
@@ -248,7 +589,8 @@ async def setup(c: Client):
             uri="{}://{}:{}".format(
                 "https" if i.get("secure") else "http",
                 i.get("host"),
-                i.get("port")
+                i.get("port"),
+                
             ),
             
         )
@@ -256,5 +598,5 @@ async def setup(c: Client):
         for i in LAVALINKS
     ]
 
-    await Pool.connect(nodes=nodes, client=c, cache_capacity=100)
+    await Pool.connect(nodes=nodes, client=c, cache_capacity=100,)
     await c.add_cog(Music(c))

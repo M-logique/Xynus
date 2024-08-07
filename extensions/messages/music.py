@@ -373,6 +373,39 @@ class Music(Cog):
 
         await self._reply(ctx, f"Seeking `{player.current.title}` to {self._milliseconds_to_time(total_ms)}.")
 
+    @commands.hybrid_command(
+            name="remove",
+            description="Remove the specified track from the queue.",
+            aliases=["r"]
+    )
+    @app_commands.describe(
+        position = "The song's position in the queue."
+    )
+    @app_commands.guild_only()
+    @app_commands.guilds()
+    @check_for_player
+    async def remove(
+        self,
+        ctx: commands.Context,
+        position: int
+    ):
+        
+        queue = self._get_cache(
+            ctx.guild.id,
+            "queue"
+        )
+
+        if not queue:
+            return await ctx.reply("There is no more song in the queue.")
+
+
+        if position < 1 or position+1 > len(queue):
+
+            return await ctx.reply("Provide a valid position please.")
+        
+
+        self.cache[ctx.guild.id]["queue"].pop(position+1)
+
 
     @commands.hybrid_command(
             name="nowplaying",

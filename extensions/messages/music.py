@@ -117,7 +117,9 @@ class Music(Cog):
         
         elif not payload.player.queue:
 
-            del self.cache[payload.player.guild.id]    
+            del self.cache[payload.player.guild.id]
+            await payload.player.home.send("Stopped the player as the queue is empty.")
+            await payload.player.disconnect()
 
     # Commands
 

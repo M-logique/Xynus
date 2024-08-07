@@ -227,7 +227,7 @@ class Music(Cog):
     @commands.hybrid_command(
             name="stop", 
             aliases=["clearqueue"],
-            descriptipn="Stop and clear the queue."
+            description="Stop and clear the queue."
     )
     @app_commands.guild_only()
     @app_commands.guilds(*guilds)
@@ -247,7 +247,8 @@ class Music(Cog):
         
     @commands.hybrid_command(
             name="skip", 
-            aliases=["sk"]
+            aliases=["sk"],
+            description="Skip the current playing song."
     )
     @app_commands.guilds(*guilds)
     @check_for_player

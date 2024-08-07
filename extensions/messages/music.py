@@ -84,7 +84,10 @@ class Music(Cog):
         length = self._milliseconds_to_time(payload.track.length)
 
         kwrgs = {
-            "description": f"{_note} **Started playing** [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]"
+            "description": (
+                f"{_note} **Started playing** [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
+                f"**Author**: `{payload.track.author}`"
+            )
         }
 
 
@@ -200,7 +203,10 @@ class Music(Cog):
         if not queue:
             embed = self._gen_embed(
                 author=ctx.author,
-                description=f"{_note} **Started playing** [`{track.title}`]({track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]",
+                description=(
+                    f"{_note} **Started playing** [`{track.title}`]({track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
+                    f"**Author**: `{track.author}`"
+                ),
             )
         else:
 

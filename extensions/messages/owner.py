@@ -27,7 +27,7 @@ class Owner(Cog):
 
     @commands.command(
         name="eval",
-        description="evals some code"
+        description="eval some codes."
     )
     @commands.is_owner()
     async def eval(

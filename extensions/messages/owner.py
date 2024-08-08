@@ -27,7 +27,8 @@ class Owner(Cog):
 
     @commands.command(
         name="eval",
-        description="eval some codes."
+        description="eval some codes.",
+        aliases=["e"]
     )
     @commands.is_owner()
     async def eval(
@@ -90,8 +91,7 @@ class Owner(Cog):
 
 
                 kwrgs = {
-                    "embed": embed,
-                    "silent": True
+                    "embed": embed
                 }
 
                 return kwrgs, len(chunks)
@@ -101,6 +101,7 @@ class Owner(Cog):
                 ctx=ctx
             )
 
+            pagination_view.add_item(DeleteButton())
 
             return await pagination_view.navegate()
         

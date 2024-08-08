@@ -10,13 +10,14 @@ from discord.ui import Select as _Select
 from discord.ui import View as _View
 from discord.ui import button
 
+from bot import __name__ as name
+from bot import __version__ as version
+
 from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker
 from ..utils.functions import disable_all_items as _disable_all_items
 from ..utils.functions import get_all_commands as _get_all_commands
 from .embeds import CommandsEmbed, DynamicHelpEmbed
-from bot import __version__ as version, __name__ as name
-
 
 emojis = Emojis()
 

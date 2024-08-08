@@ -1,6 +1,7 @@
 import os as _os
 import pkgutil as _pkgutil
 import re as _re
+from ast import Expr, If, Return, With, fix_missing_locations
 from datetime import timedelta as _timedelta
 from difflib import get_close_matches as _get_close_matches
 from inspect import Parameter as _Parameter
@@ -249,3 +250,18 @@ def suggest_similar_strings(
     
 
     return close_matches
+
+def insert_returns(body):
+    # insert return stmt if the last expression is an expression statement
+    if isinstance(body[-1], Expr):
+        body[-1] = Return(body[-1].value)
+        fix_missing_locations(body[-1])
+
+    # for if statements, we insert returns into the body and the orelse
+    if isinstance(body[-1], If):
+        insert_returns(body[-1].body)
+        insert_returns(body[-1].orelse)
+
+    # for with blocks, again we insert returns into the body
+    if isinstance(body[-1], With):
+        insert_returns(body[-1].body)

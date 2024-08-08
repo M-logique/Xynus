@@ -2,15 +2,16 @@ from os import makedirs as _makedirs
 from os import path
 
 from discord import Activity as _Activity
-from discord import Status
 from discord import ActivityType as _ActivityType
 from discord import AllowedMentions as _AllowedMentions
 from discord import Intents as _Intents
 from discord import Object as _Object
+from discord import Status
 from discord.ext import commands as _commands
 from discord.ui import View as _View
 
-from .. import __name__ as name, __version__ as version
+from .. import __name__ as name
+from .. import __version__ as version
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import Database
 from ..utils.functions import list_all_dirs, search_directory

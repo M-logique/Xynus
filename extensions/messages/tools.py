@@ -19,7 +19,6 @@ from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings)
-from bot import __version__ as version, __name__ as name
 
 _emojis = Emojis()
 

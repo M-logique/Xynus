@@ -137,7 +137,7 @@ class Moderation(Cog):
     ):
 
 
-        bans = [banned async for banned in ctx.guild.bans()]
+        bans = [banned.user.id async for banned in ctx.guild.bans()]
         users = [*filter(lambda m: m.id in bans, users)]
 
         reason = f"By {ctx.author.id}: " + reason
@@ -190,7 +190,7 @@ class Moderation(Cog):
 
         
         if len(users) == 0:
-            return await ctx.reply("Did not find any user that you can ban.")
+            return await ctx.reply("Did not find any user that you can unban.")
     
 
         embed = SimpleEmbed(

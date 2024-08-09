@@ -126,7 +126,7 @@ class Moderation(Cog):
         aliases= ["ub"],
         description="Mass unbans members with an optional reason parameter.",
     )
-    @commands.cooldown()
+    @commands.cooldown(1, 10, commands.BucketType.member)
     @commands.has_permissions(ban_members=True)
     async def unban(
         self,

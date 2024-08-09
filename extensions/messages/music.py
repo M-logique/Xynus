@@ -16,9 +16,9 @@ from bot.utils.config import Emojis
 from bot.utils.functions import chunker
 
 emojis = Emojis()
-_note = emojis.get("music_note")
-_ckm = emojis.get("checkmark")
-_csm = emojis.get("crossmark")
+note = emojis.get("music_note")
+checkmark = emojis.get("checkmark")
+crossmark = emojis.get("crossmark")
 
 
 #TODO: Make the bot pause the player when everyone left player's channel.
@@ -84,7 +84,7 @@ class Music(Cog):
 
         kwrgs = {
             "description": (
-                f"{_note} **Started playing** [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
+                f"{note} **Started playing** [`{payload.track.title}`]({payload.track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
                 f"**Author**: `{payload.track.author}`"
             )
         }
@@ -211,7 +211,7 @@ class Music(Cog):
             embed = self._gen_embed(
                 author=ctx.author,
                 description=(
-                    f"{_note} **Started playing** [`{track.title}`]({track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
+                    f"{note} **Started playing** [`{track.title}`]({track.uri or 'https://github.com/M-logique/TTK-2'}) - [`{length}`]\n"
                     f"**Author**: `{track.author}`"
                 ),
             )
@@ -257,7 +257,7 @@ class Music(Cog):
         await player.skip(force=True)
 
 
-        await self._reply(ctx, f"{_ckm} Stopped the player.")
+        await self._reply(ctx, f"{checkmark} Stopped the player.")
         
     @commands.hybrid_command(
             name="skip", 
@@ -289,7 +289,7 @@ class Music(Cog):
 
         track_length = self._milliseconds_to_time(track.length)
 
-        await self._reply(ctx, f"{_ckm} Skipped to [`{track.title}`]({track.uri}) - [`{track_length}]`. (Added by {track_author.mention})")
+        await self._reply(ctx, f"{checkmark} Skipped to [`{track.title}`]({track.uri}) - [`{track_length}]`. (Added by {track_author.mention})")
 
     
     @commands.hybrid_command(
@@ -315,7 +315,7 @@ class Music(Cog):
         await player.set_volume(number)
 
 
-        await self._reply(ctx, f"{_ckm} Now the player volume is `{number}`")
+        await self._reply(ctx, f"{checkmark} Now the player volume is `{number}`")
 
 
 
@@ -333,9 +333,9 @@ class Music(Cog):
         player: Union[Player, None] = ctx.voice_client
         if not player.paused:
             await player.pause(True)
-            return await self._reply(ctx, f"{_ckm} Paused the player.")
+            return await self._reply(ctx, f"{checkmark} Paused the player.")
         
-        await self._reply(ctx, f"{_csm} Player is already paused.")
+        await self._reply(ctx, f"{crossmark} Player is already paused.")
     
     @commands.hybrid_command(
             name="resume",
@@ -351,11 +351,11 @@ class Music(Cog):
         player: Union[Player, None] = ctx.voice_client
         if player.paused:
             await player.pause(False)
-            return await self._reply(ctx, f"{_ckm} Resumed the player.")
+            return await self._reply(ctx, f"{checkmark} Resumed the player.")
         
 
 
-        await self._reply(ctx, f"{_csm} Player is not paused.")
+        await self._reply(ctx, f"{crossmark} Player is not paused.")
 
     @commands.hybrid_command(
             name="seek",
@@ -420,7 +420,7 @@ class Music(Cog):
         track = queue[position-1]
         self.cache[ctx.guild.id]["queue"].pop(position-1)
 
-        await self._reply(ctx, f"{_ckm} Removed the song `{track.title}` from the queue.")
+        await self._reply(ctx, f"{checkmark} Removed the song `{track.title}` from the queue.")
         
 
 
@@ -476,7 +476,7 @@ class Music(Cog):
         )
 
         if not queue:
-            return await self._reply(ctx, f"{_csm} There is not any track in the queue.")
+            return await self._reply(ctx, f"{crossmark} There is not any track in the queue.")
 
         async def get_page(
                 index: int

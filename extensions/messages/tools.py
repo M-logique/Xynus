@@ -30,7 +30,7 @@ class Tools(Cog):
     
     @commands.hybrid_command(
         name="steal",
-        description="Steals specified emojis and adds them to the server",
+        description="Steals specified emojis and adds them to the server.",
         with_app_command=True,
         aliases=["addemojis"],
         usage=""
@@ -43,6 +43,7 @@ class Tools(Cog):
     @commands.has_permissions(
         manage_emojis_and_stickers = True
     )
+    @commands.cooldown(1, 10, commands.BucketType.member)
     @check_views
     async def steal(
         self,
@@ -192,9 +193,10 @@ class Tools(Cog):
 
     @commands.hybrid_group(
         name="list",
-        description="Commands to retrieve and display lists of information",
+        description="Commands to retrieve and display lists of information.",
         with_app_command=True
     )
+    @commands.cooldown(1, 5, commands.BucketType.member)
     async def list(
         self,
         ctx: commands.Context
@@ -226,7 +228,7 @@ class Tools(Cog):
 
     @list.command(
         name="bans",
-        description="Displays a list of banned members in the server",
+        description="Displays a list of banned members in the server.",
         with_app_command=True
     )
     @commands.has_permissions(
@@ -307,7 +309,7 @@ class Tools(Cog):
     
     @list.command(
         name="mutes",
-        description="Displays a list of muted members in the server",
+        description="Displays a list of muted members in the server.",
         with_app_command=True
     )
     @commands.has_permissions(
@@ -387,7 +389,7 @@ class Tools(Cog):
     
     @list.command(
         name="members",
-        description="Displays a list of members in the server",
+        description="Displays a list of members in the server.",
         with_app_command=True
     )
     @commands.has_permissions(
@@ -502,7 +504,7 @@ class Tools(Cog):
 
     @commands.command(
         name="help",
-        description="Displays the help message",
+        description="Displays the help message.",
         aliases=["h"]
     )
     @app_commands.describe(
@@ -616,7 +618,7 @@ class Tools(Cog):
 
     @app_commands.command(
         name="help",
-        description="Displays the help message"
+        description="Displays the help message."
     )
     @app_commands.rename(
         cmd = "command"

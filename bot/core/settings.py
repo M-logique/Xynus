@@ -5,7 +5,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=False)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+    )
 
     # Main Vars
     TOKEN: str
@@ -13,7 +16,6 @@ class Settings(BaseSettings):
     MAIN_COLOR: List[int] = [47, 49, 54]
     PREFIX: List[str] = [","]
     STRIP_AFTER_PREFIX: Optional[bool] = True
-    GUILDS: List[int] = []
     DB_BACKUP_CHANNEL: int
 
 settings = Settings()

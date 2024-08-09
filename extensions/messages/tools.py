@@ -2,7 +2,7 @@ from time import time
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord import Interaction, Role, app_commands, utils
+from discord import Interaction, Role, app_commands, utils, Member
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -19,6 +19,8 @@ from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings)
+from bot.templates.modals import WhisperModal
+from bot.templates.views import WhisperView, WhisperModalView
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -710,7 +712,70 @@ class Tools(Cog):
         )
 
 
+    @commands.hybrid_command(
+        name="whisper",
+        description="Whisper a message in a public channel."
+    )
+    @app_commands.guild_only()
+    @app_commands.describe(
+        member = "Select a user to whisper",
+        text = "Enter the text that you want to whisper"
+    )
+    @commands.cooldown(1, 30, commands.BucketType.member)
+    async def whisper(
+        self,
+        ctx: commands.Context,
+        member: Member,
+        text: Optional[str] = None
+    ):
         
+
+        if ctx.author.id == member.id or member.bot:
+            await ctx.defer(
+                ephemeral=True
+            )
+            return await ctx.reply(f"{crossmark} | You cannot whisper yourself or a bot user.")
+    
+
+
+        if not text:
+            if ctx.interaction:
+                return await ctx.interaction.response.send_modal(
+                    WhisperModal(
+                        target=member,
+                    )
+                )
+            
+            await ctx.defer(
+                ephemeral=True
+            )
+
+            view = WhisperModalView(
+                target=member,
+                author=ctx.author
+            )
+
+            view.message = await ctx.send(
+                content="Ok, now enter your message.",
+                view=view
+            )
+
+            return
+        
+        if len(text) > 2000:
+            return await ctx.reply(f"{crossmark} | Your text cannot be more than 2000 characters.")
+        
+        view = WhisperView(
+            target=member,
+            author=ctx.author,
+            text=text
+        )
+
+        view.message = await ctx.channel.send(
+            content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!",
+            view=view
+        )
+            
 
 
 async def setup(c): await c.add_cog(Tools(c))

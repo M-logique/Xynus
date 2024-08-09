@@ -1,5 +1,7 @@
 from discord import Interaction, TextStyle
 from discord.ui import Modal, TextInput, View
+from discord import User
+from .embeds import SimpleEmbed
 
 
 class PaginationIndexModal(Modal):
@@ -47,3 +49,49 @@ class PaginationIndexModal(Modal):
         self.view.index = value -1
         return await self.view.edit_page(interaction)
     
+
+class WhisperModal(Modal):
+
+    text = TextInput(
+        label="Whisper Text",
+        placeholder="What do you want to tell them?",
+        max_length=2000,
+        min_length=1
+    )
+
+    def __init__(
+            self,
+            target: User
+    ) -> None:
+        
+        self.target = target
+
+        super().__init__(
+            title="Whisper",
+            timeout=120,
+            custom_id="whisper"
+        )
+    
+    async def on_submit(self, interaction: Interaction) -> None:
+        from .views import WhisperView
+
+        
+        await interaction.response.send_message(
+            content="Sent the whisper message",
+            ephemeral=True
+        )
+
+        if interaction.message:
+            await interaction.message.delete()
+
+
+        view = WhisperView(
+            target=self.target,
+            author=interaction.user,
+            text=self.text.value
+        )
+
+        view.message = await interaction.channel.send(
+            content=f"{self.target.mention}, You have a very very very secret message from {interaction.user.mention}!",
+            view=view
+        )

@@ -476,6 +476,104 @@ class YesOrNoView(_View):
     
 
 
+class WhisperView(_View):
+
+    def __init__(
+            self,
+            target: User,
+            author: User,
+            text: str
+    ):
+        self.message = None
+        self.target = target
+        self.author = author
+        self.text = text
+
+
+        super().__init__(
+            timeout=15 * 60
+        )
+
+    @button(
+            label="Show Message",
+            style=ButtonStyle.secondary
+    )
+    async def show_message(
+        self,
+        inter: Interaction,
+        button: Button
+    ):
+        
+        await inter.response.send_message(
+            content=(
+                f"**Sent from {self.author.mention}**\n"
+                f"{self.text}"
+            )
+        )
+
+        await inter.message.delete()
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        
+        if self.target.id == interaction.user.id:
+            return True
+        
+        await interaction.response.edit_message()
+        return False
+
+    async def on_timeout(self) -> None:
+        return await _disable_all_items(self)
+
+
+class WhisperModalView(_View):
+    
+    def __init__(
+            self,
+            target: User,
+            author: User
+    ):
+        
+        self.message = None
+
+        self.target = target
+        self.author = author
+        
+        super().__init__(
+            timeout=120,
+        )
+    
+
+    async def on_timeout(self) -> None:
+        return await _disable_all_items(self)
+
+
+    @button(
+        label="Enter your message",
+        style=ButtonStyle.secondary
+    )
+    async def enter_your_message(
+        self,
+        inter: Interaction,
+        button: Button
+    ):
+        from .modals import WhisperModal
+        
+        return await inter.response.send_modal(
+            WhisperModal(
+                target=self.target
+            )
+        )
+
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        
+        if self.author.id == interaction.user.id:
+            return True
+        
+        await interaction.response.edit_message()
+        return False
+
+
 class PersistentViews:
 
     def __init__(self, client: commands.Bot) -> None:

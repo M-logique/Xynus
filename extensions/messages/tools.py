@@ -730,6 +730,7 @@ class Tools(Cog):
     ):
         
 
+
         if ctx.author.id == member.id or member.bot:
             await ctx.defer(
                 ephemeral=True
@@ -771,8 +772,12 @@ class Tools(Cog):
             text=text
         )
 
+        
+        expiry_time = int(time() + 15 * 60)
+ 
+
         view.message = await ctx.channel.send(
-            content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!",
+            content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nThis message will expire <t:{expiry_time}:R>.",
             view=view
         )
             

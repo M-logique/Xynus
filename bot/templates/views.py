@@ -508,7 +508,8 @@ class WhisperView(_View):
             content=(
                 f"**Sent from {self.author.mention}**\n"
                 f"{self.text}"
-            )
+            ),
+            ephemeral=True
         )
 
         await inter.message.delete()

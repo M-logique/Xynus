@@ -1,7 +1,7 @@
 from discord import Interaction, TextStyle
 from discord.ui import Modal, TextInput, View
 from discord import User
-from .embeds import SimpleEmbed
+from time import time
 
 
 class PaginationIndexModal(Modal):
@@ -91,7 +91,9 @@ class WhisperModal(Modal):
             text=self.text.value
         )
 
+        expiry_time = int(time() + 15 * 60)
+
         view.message = await interaction.channel.send(
-            content=f"{self.target.mention}, You have a very very very secret message from {interaction.user.mention}!",
+            content=f":eyes: {self.target.mention}, You have a very very very secret message from {interaction.user.mention}!\nThis message will expire <t:{expiry_time}:R>.",
             view=view
         )

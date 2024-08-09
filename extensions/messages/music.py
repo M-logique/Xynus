@@ -21,6 +21,7 @@ _ckm = emojis.get("checkmark")
 _csm = emojis.get("crossmark")
 
 
+#TODO: Make the bot pause the player when everyone left player's channel.
 
 
 LAVALINKS = [
@@ -109,6 +110,12 @@ class Music(Cog):
             "queue"
         )
 
+        ignore_stopped_message = self._get_cache(
+            payload.player.guild.id, 
+            "ignore_stopped_message"
+        )
+
+
         if cached_value:
             await payload.player.play(cached_value[0].get("track"))
             self.cache[payload.player.guild.id]["queue"].pop(0)
@@ -116,7 +123,10 @@ class Music(Cog):
         elif not payload.player.queue:
 
             del self.cache[payload.player.guild.id]
-            await payload.player.home.send("Stopped the player as the queue is empty.")
+
+            if not ignore_stopped_message:
+                await payload.player.home.send("Stopped the player as the queue is empty.")
+
             await payload.player.disconnect()
 
     # Commands
@@ -241,6 +251,17 @@ class Music(Cog):
         del self.cache[ctx.guild.id]["queue"]
 
         await player.skip(force=True)
+
+        ignore_stopped_message = self._get_cache(
+            ctx.guild.id, 
+            "ignore_stopped_message"
+        )
+
+        if not ignore_stopped_message:
+            self.cache[ctx.guild.id]["ignore_stopped_message"] = True
+
+
+
         await self._reply(ctx, f"{_ckm} Stopped the player.")
         
     @commands.hybrid_command(
@@ -265,7 +286,7 @@ class Music(Cog):
         )
 
         if not queue:
-            return await self._reply(ctx, f"Stopping the player as there is no more track remaining.")
+            return 
         
         track: Playable = queue[0]["track"]
         track_author: Member = queue[0]["by"]
@@ -648,8 +669,10 @@ class Music(Cog):
 
     ) -> int:
         
-
-        parts = time_str.split(':')
+        if ':' in time_str:
+            parts = time_str.split(':')
+        else:
+            parts = [time_str]
         
         hours = 0
         minutes = 0

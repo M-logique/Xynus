@@ -249,9 +249,7 @@ class Music(Cog):
         
         player.queue.clear()
         del self.cache[ctx.guild.id]["queue"]
-
-        await player.skip(force=True)
-
+        
         ignore_stopped_message = self._get_cache(
             ctx.guild.id, 
             "ignore_stopped_message"
@@ -259,6 +257,9 @@ class Music(Cog):
 
         if not ignore_stopped_message:
             self.cache[ctx.guild.id]["ignore_stopped_message"] = True
+
+        await player.skip(force=True)
+
 
 
 

@@ -1,7 +1,12 @@
-from discord import Interaction, TextStyle
-from discord.ui import Modal, TextInput, View
-from discord import User
 from time import time
+
+from discord import Interaction, TextStyle, User
+from discord.ui import Modal, TextInput, View
+
+from ..utils.config import Emojis
+
+_emojis = Emojis()
+checkmark = _emojis.get("checkmark")
 
 
 class PaginationIndexModal(Modal):
@@ -77,7 +82,7 @@ class WhisperModal(Modal):
 
         
         await interaction.response.send_message(
-            content="Sent the whisper message",
+            content=f"{checkmark} | Sent in {interaction.channel.mention}",
             ephemeral=True
         )
 

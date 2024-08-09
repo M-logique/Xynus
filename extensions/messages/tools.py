@@ -2,7 +2,7 @@ from time import time
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord import Interaction, Role, app_commands, utils, Member
+from discord import Interaction, Member, Role, app_commands, utils
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -12,15 +12,15 @@ from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed
-from bot.templates.views import DynamicHelpView, EmojisView, Pagination
+from bot.templates.modals import WhisperModal
+from bot.templates.views import (DynamicHelpView, EmojisView, Pagination,
+                                 WhisperModalView, WhisperView)
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings)
-from bot.templates.modals import WhisperModal
-from bot.templates.views import WhisperView, WhisperModalView
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -761,7 +761,7 @@ class Tools(Cog):
             )
 
             view.message = await ctx.send(
-                content="Ok, now enter your message.",
+                content=":eyes: Ok, now enter your message.",
                 view=view
             )
 

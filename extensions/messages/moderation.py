@@ -251,7 +251,7 @@ class Moderation(Cog):
         )
 
         await ctx.reply(
-            f"{_emojis.get("checkmark")} | Changed {member.mention} nickname's to {nickname}",
+            f"{checkmark} | Changed {member.mention} nickname's to {nickname}",
             allowed_mentions=AllowedMentions(
                 everyone=False,
                 users=False,

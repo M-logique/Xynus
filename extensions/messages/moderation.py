@@ -195,7 +195,7 @@ class Moderation(Cog):
 
         embed = SimpleEmbed(
             self.client,
-            description=f"Are you sure that you want to ban these {len(users)} user(s)?"
+            description=f"Are you sure that you want to unban these {len(users)} user(s)?"
         )
 
         embed.set_footer(

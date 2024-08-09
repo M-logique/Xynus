@@ -729,6 +729,9 @@ class Tools(Cog):
         text: Optional[str] = None
     ):
         
+        if ctx.message:
+            try: await ctx.message.delete()
+            except: ...
 
 
         if ctx.author.id == member.id or member.bot:
@@ -774,7 +777,10 @@ class Tools(Cog):
 
         
         expiry_time = int(time() + 15 * 60)
- 
+
+        if ctx.interaction:
+            await ctx.interaction.response.defer(ephemeral=True)
+            await ctx.interaction.delete_original_response()
 
         view.message = await ctx.channel.send(
             content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nThis message will expire <t:{expiry_time}:R>.",

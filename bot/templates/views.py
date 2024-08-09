@@ -496,7 +496,8 @@ class WhisperView(_View):
 
     @button(
             label="Show Message",
-            style=ButtonStyle.secondary
+            style=ButtonStyle.secondary,
+            emoji="🤨"
     )
     async def show_message(
         self,

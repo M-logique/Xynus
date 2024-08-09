@@ -223,7 +223,7 @@ class Moderation(Cog):
         manage_nicknames=True
     )
     @app_commands.describe(
-        user = "User to change nickname for.",
+        member = "Member to change nickname for.",
         nickname = "New nickname for the user."
     )
     @app_commands.guild_only()

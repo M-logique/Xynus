@@ -35,13 +35,15 @@ class Client(_commands.Bot):
 
         self.view_cache = {}
 
-        super().__init__(command_prefix=_commands.when_mentioned_or(*prefix),
-                         owner_ids=owner_ids,
-                         strip_after_prefix=strip_aftre_prefix,
-                         allowed_mentions=allowed_mentions, 
-                         intents=intents,
-                         help_command=None,
-                         **options)
+        super().__init__(
+            command_prefix=_commands.when_mentioned_or(*prefix),
+            owner_ids=owner_ids,
+            strip_after_prefix=strip_aftre_prefix,
+            allowed_mentions=allowed_mentions, 
+            intents=intents,
+            help_command=None,
+            **options
+        )
 
     async def on_ready(self):
 
@@ -55,11 +57,12 @@ class Client(_commands.Bot):
         )
 
 
-        if self.cogs != {}: return self.logger.warn("Skipped loading cogs: Reconnecting")
+        if self.cogs != {}: return self.logger.warn("Skipped loading extensions: Reconnecting")
 
         self.logger.success(f"Discord Client Logged in as {self.user.name}")
 
-        # Cogs loading shits
+        # Extension loading stuff
+
         self.logger.info("Started loading Extensions")
     
         for dir in list_all_dirs("./extensions"):
@@ -69,10 +72,8 @@ class Client(_commands.Bot):
 
         self.logger.info("Finished loading Extensions")
         try:
-            for guild in settings.GUILDS:
-                await self.tree.sync(guild=_Object(id=guild))
-
-            self.logger.success("Synced the command tree")
+            synced = await self.tree.sync()
+            self.logger.info(f"Synced {len(synced)} command(s).")
         except Exception as err:
 
             self.logger.error("Failed to sync command tree: {}".format(err))
@@ -80,6 +81,7 @@ class Client(_commands.Bot):
     async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
         if isinstance(error, _commands.CommandNotFound):
             pass
+
         elif isinstance(error, _commands.MissingPermissions):
             text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)
             await ctx.reply(embed=ErrorEmbed(text))
@@ -118,11 +120,13 @@ class Client(_commands.Bot):
 
 
 
-        return super().run(settings.TOKEN,
-                           log_handler=self.logger.handler,
-                           log_formatter=self.logger.formatter,
-                           log_level=self.logger.level,
-                           root_logger=self.logger.root)
+        return super().run(
+            settings.TOKEN,
+            log_handler=self.logger.handler,
+            log_formatter=self.logger.formatter,
+            log_level=self.logger.level,
+            root_logger=self.logger.root
+        )
     
     async def setup_hook(self) -> None:
         if not path.exists("./data"):

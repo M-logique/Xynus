@@ -139,7 +139,6 @@ class Music(Cog):
             aliases=["connect", "j"]
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_voice_client
     async def join(
         self,
@@ -154,7 +153,6 @@ class Music(Cog):
             aliases=["disconnect", "dc"]
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def leave(
         self,
@@ -175,7 +173,6 @@ class Music(Cog):
     @app_commands.describe(
         query = "Provide a name or url to find and play track(s)."
     )
-    @app_commands.guilds(*guilds)
     @check_voice_client
     async def play(
         self,
@@ -238,7 +235,6 @@ class Music(Cog):
             description="Stop and clear the queue."
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def stop(
         self,
@@ -246,10 +242,10 @@ class Music(Cog):
     ):
         
         player: Union[Player, None] = ctx.voice_client
-        
+
         player.queue.clear()
         del self.cache[ctx.guild.id]["queue"]
-        
+
         ignore_stopped_message = self._get_cache(
             ctx.guild.id, 
             "ignore_stopped_message"
@@ -261,8 +257,6 @@ class Music(Cog):
         await player.skip(force=True)
 
 
-
-
         await self._reply(ctx, f"{_ckm} Stopped the player.")
         
     @commands.hybrid_command(
@@ -270,13 +264,14 @@ class Music(Cog):
             aliases=["sk"],
             description="Skip the current playing song."
     )
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def skip(
         self,
         ctx: commands.Context
     ):
-        
+
+
+
         player: Union[Player, None] = ctx.voice_client
 
         await player.skip(force=False)
@@ -306,7 +301,6 @@ class Music(Cog):
         number = "Provide a volume number."
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def volume(
         self,
@@ -330,7 +324,6 @@ class Music(Cog):
             description="Pause the currently playing music."
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def pause(
         self,
@@ -349,7 +342,6 @@ class Music(Cog):
             aliases=["r"],
             description="Resume the currently playing music."
     )
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def resume(
         self,
@@ -369,7 +361,6 @@ class Music(Cog):
             name="seek",
             description="Set the position of the playing track."
     )
-    @app_commands.guilds(*guilds)
     @app_commands.describe(
         time = "Length of time. Example: 1:30"
     )
@@ -439,7 +430,6 @@ class Music(Cog):
             description="Show the currently playing song."
     )
     @app_commands.guild_only()
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def nowplaying(
         self,
@@ -474,7 +464,6 @@ class Music(Cog):
             aliases=["q"],
             description="Display a list of current songs in the queue."
     )
-    @app_commands.guilds(*guilds)
     @check_for_player
     async def queue(
         self,

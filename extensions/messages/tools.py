@@ -35,7 +35,6 @@ class Tools(Cog):
         aliases=["addemojis"],
         usage=""
     )
-    @app_commands.guilds(*guilds)
     @app_commands.describe(
         emojis = "List of emojis to be added to the server",
         force_add = "Adds emojis without displaying the pagination (default: False)",
@@ -196,7 +195,6 @@ class Tools(Cog):
         description="Commands to retrieve and display lists of information",
         with_app_command=True
     )
-    @app_commands.guilds(*guilds)
     async def list(
         self,
         ctx: commands.Context
@@ -231,7 +229,6 @@ class Tools(Cog):
         description="Displays a list of banned members in the server",
         with_app_command=True
     )
-    @app_commands.guilds(*guilds)
     @commands.has_permissions(
         ban_members = True,
     )
@@ -313,7 +310,6 @@ class Tools(Cog):
         description="Displays a list of muted members in the server",
         with_app_command=True
     )
-    @app_commands.guilds(*guilds)
     @commands.has_permissions(
         ban_members = True,
     )
@@ -394,7 +390,6 @@ class Tools(Cog):
         description="Displays a list of members in the server",
         with_app_command=True
     )
-    @app_commands.guilds(*guilds)
     @commands.has_permissions(
         ban_members = True,
     )
@@ -633,7 +628,6 @@ class Tools(Cog):
         cmd = "The command to get help for. If not specified, shows general help information.",
         ephemeral = "Hide the bot's response from other users. (default: False)",
     )
-    @app_commands.guilds(*guilds)
     @check_views_interaction
     async def help_slash(
         self,

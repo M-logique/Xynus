@@ -30,7 +30,6 @@ class Moderation(Cog):
     )
 
     @commands.has_permissions(ban_members=True)
-    @app_commands.guilds(*guilds)
     async def ban(
         self,
         ctx: commands.Context,
@@ -100,7 +99,7 @@ class Moderation(Cog):
 
         embed = SimpleEmbed(
             self.client,
-            description=f"Are you sure that you want to ban these {len(users)} users?"
+            description=f"Are you sure that you want to ban these {len(users)} user(s)?"
         )
 
         embed.set_footer(
@@ -129,7 +128,7 @@ class Moderation(Cog):
     @app_commands.describe(
         amount = "Enter a number between 2-1000 to bulk delete messages."
     )
-    @app_commands.guilds(*guilds)
+    @app_commands.guild_only()
     @commands.cooldown(1, 10, commands.BucketType.member)
     async def purge(
         self,
@@ -162,7 +161,6 @@ class Moderation(Cog):
     @app_commands.describe(
         message_id = "The ID of the message you want to delete before it."
     )
-    @app_commands.guilds(*guilds)
     async def purge_until(
         self,
         ctx: commands.Context,
@@ -198,7 +196,6 @@ class Moderation(Cog):
     @app_commands.describe(
         amount = "Enter a number between 2-1000 to bulk delete messages."
     )
-    @app_commands.guilds(*guilds)
     async def purge_bots(
         self,
         ctx: commands.Context,
@@ -228,7 +225,6 @@ class Moderation(Cog):
     @app_commands.describe(
         prefix = "The prefix of the commands you want to delete."
     )
-    @app_commands.guilds(*guilds)
     async def purge_commands(
         self,
         ctx: commands.Context,
@@ -255,7 +251,6 @@ class Moderation(Cog):
     @app_commands.describe(
         user = "Please enter the user"
     )
-    @app_commands.guilds(*guilds)
     async def purge_user(
         self,
         ctx: commands.Context,
@@ -281,7 +276,6 @@ class Moderation(Cog):
         amount = "Enter a number between 2-1000 to bulk delete messages.",
         only_bots = "if enabled, will only delete the messages of bots."
     )
-    @app_commands.guilds(*guilds)
     async def purge_embeds(
         self,
         ctx: commands.Context,

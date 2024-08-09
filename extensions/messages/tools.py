@@ -726,6 +726,7 @@ class Tools(Cog):
         self,
         ctx: commands.Context,
         member: Member,
+        *,
         text: Optional[str] = None
     ):
         

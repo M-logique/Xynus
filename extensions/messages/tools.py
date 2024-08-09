@@ -6,7 +6,7 @@ from discord import Interaction, Role, app_commands, utils
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
-from bot.core import _settings, guilds
+from bot.core import _settings
 from bot.core.client import Client
 from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
@@ -21,6 +21,10 @@ from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  suggest_similar_strings)
 
 _emojis = Emojis()
+checkmark = _emojis.get("checkmark")
+crossmark = _emojis.get("crossmark")
+exclamation = _emojis.get("exclamation")
+
 
 class Tools(Cog):
 
@@ -97,9 +101,7 @@ class Tools(Cog):
 
             return kwrgs, len(extracted_emojis)
         
-        check_mark = _emojis.get("checkmark")
-        cross_mark = _emojis.get("crossmark")
-        exclamation = _emojis.get("exclamation")
+
 
         if extracted_emojis != []:
             if force_add:
@@ -115,7 +117,7 @@ class Tools(Cog):
                             if not resp.status == 200:
                                 return await ctx.send(
                                     content="{} | Failed to steal emoji `{}`: Invalid data.".format(
-                                        cross_mark,
+                                        crossmark,
                                         emoji.get("name")
                                     )
                                 )
@@ -138,7 +140,7 @@ class Tools(Cog):
 
                                 await ctx.send(
                                     content="{} | Successfully stole emoji: {}.".format(
-                                        check_mark,
+                                        checkmark,
                                         emoji
                                     )
                                 )
@@ -148,7 +150,7 @@ class Tools(Cog):
 
                                 await ctx.send(
                                     content="{} | Failed to steal emoji `{}`: 403 error occured.".format(
-                                        cross_mark,
+                                        crossmark,
                                         emoji.get("name")
                                     )
                                 )
@@ -158,7 +160,7 @@ class Tools(Cog):
 
                                     await ctx.send(
                                         content="{} | Failed to steal emoji `{}`: The server has reached the maximum number of custom emojis.".format(
-                                            cross_mark,
+                                            crossmark,
                                             emoji.get("name")
                                         )
                                     )
@@ -166,7 +168,7 @@ class Tools(Cog):
                                 else:
                                     await ctx.send(
                                         content="{} | Failed to steal emoji `{}`: {}.".format(
-                                            cross_mark,
+                                            crossmark,
                                             emoji.get("name"),
                                             e.text
                                         )
@@ -174,7 +176,7 @@ class Tools(Cog):
 
                 else:
                     return await ctx.send(
-                        content=f"{exclamation} The job is done.\n{check_mark} successfull: `{success}`\n{cross_mark} unsuccessfull: `{len(extracted_emojis)-success}`"
+                        content=f"{exclamation} The job is done.\n{checkmark} successfull: `{success}`\n{crossmark} unsuccessfull: `{len(extracted_emojis)-success}`"
                     )
 
 

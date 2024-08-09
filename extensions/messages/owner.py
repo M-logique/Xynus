@@ -4,7 +4,7 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
-from bot.core import Client, guilds
+from bot.core import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import SimpleEmbed
@@ -13,6 +13,8 @@ from bot.utils.config import Emojis
 from bot.utils.functions import chunker, insert_returns
 
 _emojis = Emojis()
+checkmark = _emojis.get("checkmark")
+
 
 class Owner(Cog):
 
@@ -65,7 +67,7 @@ class Owner(Cog):
         result = str((await eval(f"{fn_name}()", env)))
 
         if result == "None":
-            return await ctx.message.add_reaction(_emojis.get("checkmark"))
+            return await ctx.message.add_reaction(checkmark)
         
 
         embed = SimpleEmbed(

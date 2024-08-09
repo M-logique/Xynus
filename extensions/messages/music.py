@@ -6,7 +6,7 @@ from wavelink import (Node, NodeReadyEventPayload, Playable, Player, Playlist,
                       Pool, Search, TrackEndEventPayload, TrackSource,
                       TrackStartEventPayload)
 
-from bot.core import Client, guilds
+from bot.core import Client
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import SimpleEmbed
@@ -395,7 +395,6 @@ class Music(Cog):
         position = "The song's position in the queue."
     )
     @app_commands.guild_only()
-    @app_commands.guilds()
     @check_for_player
     async def remove(
         self,

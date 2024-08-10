@@ -255,7 +255,7 @@ class Moderation(Cog):
         txt = ""
 
         if nickname:
-            txt+=f"{checkmark} | Changed {member.mention} nickname's to {nickname}."
+            txt+=f"{checkmark} | Changed {member.mention}'s nickname to {nickname}."
         
         else:
             txt+=f"{checkmark} | {member.mention}'s nickname has been reset."

@@ -233,7 +233,7 @@ class Moderation(Cog):
         self,
         ctx: commands.Context,
         member: Member,
-        nickname: str
+        nickname: Optional[str] = None
     ):
         if member.top_role.position >= ctx.author.top_role.position \
             or member.top_role.position >= ctx.me.top_role.position:
@@ -251,8 +251,16 @@ class Moderation(Cog):
             reason=f"By {ctx.author} | {ctx.author.id}"
         )
 
+        txt = ""
+
+        if nickname:
+            txt+=f"{checkmark} | Changed {member.mention} nickname's to {nickname}."
+        
+        else:
+            txt+=f"{checkmark} | {member.mention}'s nickname has been reset."
+
         await ctx.reply(
-            f"{checkmark} | Changed {member.mention} nickname's to {nickname}",
+            txt,
             allowed_mentions=AllowedMentions(
                 everyone=False,
                 users=False,

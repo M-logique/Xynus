@@ -99,6 +99,6 @@ class WhisperModal(Modal):
         expiry_time = int(time() + 15 * 60)
 
         view.message = await interaction.channel.send(
-            content=f":eyes: {self.target.mention}, You have a very very very secret message from {interaction.user.mention}!\nThis message will expire <t:{expiry_time}:R>.",
+            content=f":eyes: {self.target.mention}, You have a very very very secret message from {interaction.user.mention}!\nYou can only use the button until <t:{expiry_time}:t>.",
             view=view
         )

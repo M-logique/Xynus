@@ -786,7 +786,7 @@ class Tools(Cog):
             )
 
         view.message = await ctx.channel.send(
-            content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nThis message will expire <t:{expiry_time}:R>.",
+            content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nYou can only use the button until <t:{expiry_time}:t>.",
             view=view
         )
             

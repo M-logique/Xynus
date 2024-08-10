@@ -184,8 +184,8 @@ class EmojisView(Pagination):
             thinking=True
         )
 
-        check_mark = emojis("checkmark")
-        cross_mark = emojis("crossmark")
+        check_mark = emojis.get("checkmark")
+        cross_mark = emojis.get("crossmark")
 
         emoji = self.emojis[self.index]
         url = "https://cdn.discordapp.com/emojis/{}.png".format(emoji.get("id"))

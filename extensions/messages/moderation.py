@@ -233,6 +233,7 @@ class Moderation(Cog):
         self,
         ctx: commands.Context,
         member: Member,
+        *,
         nickname: Optional[str] = None
     ):
         if member.top_role.position >= ctx.author.top_role.position \

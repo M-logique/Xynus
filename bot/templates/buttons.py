@@ -2,6 +2,8 @@ from typing import Any as _Any
 
 from discord import ButtonStyle as _ButtonStyle
 from discord import Interaction as _Interaction
+from discord import Forbidden as _Forbidden
+from discord import NotFound as _NotFound
 from discord.ui import Button as _Button
 
 from ..utils.config import Emojis
@@ -36,5 +38,23 @@ class DeleteButton(_Button):
         
     
     async def callback(self, interaction: _Interaction) -> _Any:
+
+
         await interaction.response.edit_message()
-        return await interaction.delete_original_response()
+
+        message = interaction.message
+
+
+
+        await interaction.delete_original_response()
+        
+        if message.reference:
+            try:
+                refrenced_message = await interaction.channel.fetch_message(
+                    message.reference.message_id
+                )
+                await refrenced_message.delete()
+
+            except (_Forbidden, _NotFound):
+                pass
+            

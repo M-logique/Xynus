@@ -82,7 +82,7 @@ class Client(_commands.Bot):
     async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
         from ..templates.views import ViewWithDeleteButton
         if isinstance(error, _commands.CommandNotFound):
-            pass
+            return
 
         elif isinstance(error, _commands.MissingPermissions):
             text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)

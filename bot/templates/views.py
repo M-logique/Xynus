@@ -736,6 +736,17 @@ class PersistentViews:
                     content=f"{emojis.get('crossmark')} | Failed to leave `{guild.name}`"
                 )
 
+        async def interaction_check(
+                self, 
+                interaction: Interaction
+        ) -> bool:
+            
+            if not await self.client.is_owner(interaction.user):
+                await interaction.response.edit_message()
+                return False
+            
+            return True
+            
 
     def add_views(
             self

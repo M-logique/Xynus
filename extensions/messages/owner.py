@@ -1,18 +1,16 @@
 from ast import parse
-from typing import Optional
+from time import time
 
 import discord
 from discord.ext import commands
 
-from time import time
 from bot.core import Client, _settings
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import SimpleEmbed
-from bot.templates.views import Pagination
+from bot.templates.views import Pagination, PersistentViews, ViewWithDeleteButton
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker, insert_returns
-from bot.templates.views import PersistentViews
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -111,7 +109,8 @@ class Owner(Cog):
         
         await ctx.reply(
             embed=embed,
-            silent=True
+            silent=True,
+            view=ViewWithDeleteButton(ctx.author)
         )
 
     @commands.Cog.listener(

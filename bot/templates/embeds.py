@@ -7,7 +7,6 @@ from typing import Union as _Union
 from discord import Color as _Color
 from discord import Embed as _Embed
 from discord import Interaction as _Interaction
-from discord import Member as _Member
 from discord.ext import commands as _commands
 
 from ..core.settings import settings
@@ -37,18 +36,16 @@ class SimpleEmbed(_Embed):
 class ErrorEmbed(_Embed):
 
 
-    def __init__(self, error: str,
-                *args: _Any, 
-                **kwgrs: _Any) -> None:
+    def __init__(
+        self, 
+        error: str,
+    ) -> None:
 
 
-        super().__init__(title="We Got an Error!",
-                        color=_Color.from_rgb(255, 3, 7),
-                        description="⚠️ {}".format(error),
-                        timestamp=_datetime.now(),
-                        *args, 
-                        **kwgrs
-                    )
+        super().__init__(
+            description=f":x: **{error}**",
+            color=_Color.from_rgb(255, 3, 7)
+        )
         
 class CommandsEmbed(_Embed):
 

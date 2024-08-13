@@ -4,8 +4,10 @@ from os import path
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
 from discord import AllowedMentions as _AllowedMentions
+from discord import HTTPException as _HTTPException
+from discord import Forbidden as _Forbidden
+
 from discord import Intents as _Intents
-from discord import Object as _Object
 from discord import Status
 from discord.ext import commands as _commands
 from discord.ui import View as _View
@@ -79,21 +81,39 @@ class Client(_commands.Bot):
             self.logger.error("Failed to sync command tree: {}".format(err))
     
     async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
+        from ..templates.views import ViewWithDeleteButton
         if isinstance(error, _commands.CommandNotFound):
             pass
 
         elif isinstance(error, _commands.MissingPermissions):
             text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)
-            await ctx.reply(embed=ErrorEmbed(text))
+            
         elif isinstance(error, _commands.CommandOnCooldown):
-            await ctx.reply(embed=ErrorEmbed(f'This command is on cooldown, you can use it in {round(error.retry_after, 2)}s'))
+            text = f'This command is on cooldown, you can use it in {round(error.retry_after, 2)}s.'
+
         elif isinstance(error, _commands.NotOwner):
-            await ctx.reply(embed=ErrorEmbed("You are not owner"))
+            text = "This command is only for the owner."
+
         else: 
-            if len(str(error)) < 2000:
-                await ctx.reply(embed=ErrorEmbed(str(error)))
-            else:
-                await ctx.reply(embed=ErrorEmbed(str(error)[:2000:]))
+            err = str(error)
+
+            text = err[:300:]
+
+            if len(err) > 300:
+                text += "..."
+            
+        embed = ErrorEmbed(text)
+
+        try:
+            await ctx.reply(
+                embed=embed,
+                view=ViewWithDeleteButton(ctx.author)
+            )
+            
+        except (_HTTPException, _Forbidden):
+            pass
+        
+        
 
 
 

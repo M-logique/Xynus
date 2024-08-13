@@ -2,7 +2,6 @@ from functools import wraps
 from types import FunctionType
 from typing import Union
 
-from discord import Forbidden
 from discord.ext import commands
 
 from ..utils.functions import disable_all_items

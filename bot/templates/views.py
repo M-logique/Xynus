@@ -1,8 +1,9 @@
+from re import search as _search
 from types import FunctionType
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Union
 
 from aiohttp import ClientSession
-from discord import Button, ButtonStyle, Emoji, Interaction, User
+from discord import Button, ButtonStyle, ChannelType, Interaction, User
 from discord.components import SelectOption
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
@@ -12,8 +13,6 @@ from discord.ui import button
 
 from bot import __name__ as name
 from bot import __version__ as version
-from re import search as _search
-from discord import ChannelType
 
 from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker
@@ -577,6 +576,37 @@ class WhisperModalView(_View):
         await interaction.response.edit_message()
         return False
 
+class ViewWithDeleteButton(_View):
+
+    def __init__(
+            self,
+            author: User,
+            /, 
+            *,
+            timeout: Optional[int] = 30
+    ):
+        from .buttons import DeleteButton
+
+        super().__init__(
+            timeout=timeout
+        )
+
+        self.author = author
+
+        self.add_item(
+            DeleteButton()
+        )
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        
+        if self.author.id == interaction.user.id:
+            return True
+        
+        await interaction.response.edit_message()
+        return False
+
+    async def on_timeout(self) -> None:
+        return await _disable_all_items(self)
 
 class PersistentViews:
 

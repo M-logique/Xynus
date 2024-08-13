@@ -21,8 +21,6 @@ from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
 
-from ..core.settings import settings as _settings
-
 
 def chunker(text, chunk_size: int) -> list:
     length = len(text)
@@ -88,7 +86,7 @@ async def disable_all_items(
     else:
 
         try:
-            
+
             await view.message.edit(
                 view=view
             )

@@ -760,6 +760,8 @@ class Tools(Cog):
                 author=ctx.author
             )
 
+            view.add_item(DeleteButton())
+
             view.message = await ctx.send(
                 content=f":eyes: Ok {ctx.author.mention}, now enter your message.",
                 view=view

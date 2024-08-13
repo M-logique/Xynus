@@ -8,7 +8,8 @@ from bot.core import Client, _settings
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import SimpleEmbed
-from bot.templates.views import Pagination, PersistentViews, ViewWithDeleteButton
+from bot.templates.views import (Pagination, PersistentViews,
+                                 ViewWithDeleteButton)
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker, insert_returns
 

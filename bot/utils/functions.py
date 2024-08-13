@@ -12,9 +12,10 @@ from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
 
+from discord import Forbidden as _Forbidden
+from discord import HTTPException as _HTTPException
 from discord.ext.commands import Cog as _Cog
 from discord.ext.commands import Command as _Command
-from discord.ext.commands import Context as _Context
 from discord.ext.commands import Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
@@ -80,17 +81,19 @@ async def disable_all_items(
         view: View
 ):
     for item in view.children:
-        try:
+
+        if hasattr(item, "disabled"):
             item.disabled = True
-        except:
-            pass
+
     else:
 
         try:
+            
             await view.message.edit(
                 view=view
             )
-        except:
+
+        except (_Forbidden, _HTTPException):
             pass
 
 def chunker(text, chunk_size: int):

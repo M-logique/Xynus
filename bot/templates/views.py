@@ -587,6 +587,8 @@ class ViewWithDeleteButton(_View):
     ):
         from .buttons import DeleteButton
 
+        self.message = None
+
         super().__init__(
             timeout=timeout
         )

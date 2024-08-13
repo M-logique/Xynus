@@ -106,11 +106,11 @@ class Owner(Cog):
             pagination_view.add_item(DeleteButton())
 
             return await pagination_view.navegate()
-        
-        await ctx.reply(
+        view = ViewWithDeleteButton(ctx.author)
+        view.message = await ctx.reply(
             embed=embed,
             silent=True,
-            view=ViewWithDeleteButton(ctx.author)
+            view=view
         )
 
     @commands.Cog.listener(

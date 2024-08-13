@@ -103,13 +103,14 @@ class Client(_commands.Bot):
                 text += "..."
             
         embed = ErrorEmbed(text)
+        view = ViewWithDeleteButton(ctx.author)
 
         try:
-            await ctx.reply(
+            view.message = await ctx.reply(
                 embed=embed,
-                view=ViewWithDeleteButton(ctx.author)
+                view=view
             )
-            
+
         except (_HTTPException, _Forbidden):
             pass
         

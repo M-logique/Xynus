@@ -16,6 +16,6 @@ class Settings(BaseSettings):
     MAIN_COLOR: List[int] = [47, 49, 54]
     PREFIX: List[str] = [","]
     STRIP_AFTER_PREFIX: Optional[bool] = True
-    DB_BACKUP_CHANNEL: int
+    DEV_LOGS_CHANNEL: int
 
 settings = Settings()

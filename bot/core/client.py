@@ -136,11 +136,7 @@ class Client(_commands.Bot):
         from ..templates.views import PersistentViews
 
         view_collection = PersistentViews(self)
-
-        for view in view_collection.views:
-
-            self.add_view(view(client=self))
-
+        view_collection.add_views()
 
     def set_user_view(
             self,

@@ -1,8 +1,8 @@
 from typing import Any as _Any
 
 from discord import ButtonStyle as _ButtonStyle
-from discord import Interaction as _Interaction
 from discord import Forbidden as _Forbidden
+from discord import Interaction as _Interaction
 from discord import NotFound as _NotFound
 from discord.ui import Button as _Button
 

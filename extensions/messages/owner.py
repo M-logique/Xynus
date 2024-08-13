@@ -4,13 +4,15 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
-from bot.core import Client
+from time import time
+from bot.core import Client, _settings
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import Cog
 from bot.templates.embeds import SimpleEmbed
 from bot.templates.views import Pagination
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker, insert_returns
+from bot.templates.views import PersistentViews
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -112,6 +114,89 @@ class Owner(Cog):
             silent=True
         )
 
+    @commands.Cog.listener(
+        name="on_guild_join"
+    )
+    async def new_guild_alert(
+        self,
+        guild: discord.Guild
+    ):
+        embed = SimpleEmbed(
+            client=self.client,
+        )
+
+        embed.colour = discord.Color.green()
+        members = guild.members
+        bots = [*filter(lambda member: member.bot, members)]
+
+        embed.add_field(
+            name="👑 Owner",
+            value=f"♿️ **Username**: `{guild.owner.name}`\n💠 **ID**: `{guild.owner.id}`\n🔸 **Display**: `{guild.owner.display_name}`",
+            inline=False
+        )
+
+        if guild.premium_subscription_count != 0:
+            
+            embed.add_field(
+                name=f"💎 Boosts",
+                value=f"🤑 **Boosts**: {guild.premium_subscription_count}\n📊 **Level**: `{guild.premium_tier}`\n🤨 **Boosters**: `{len(guild.premium_subscribers)}`",
+                inline=False
+            )
+
+
+        embed.add_field(
+            name="🥱 Members",
+            value=f"🔢 **Total**: `{guild.member_count}`\n🤖 **Bots**: `{len(bots)}`\n🦛 **Humans**: `{len(members) - len(bots)}`"
+        )
+
+        embed.set_author(
+            name=f"{self.client.user.name} has been invited to {guild.name} #{len(self.client.guilds)}",
+            icon_url=self.client.user.avatar
+        )
+
+        embed.set_thumbnail(
+            url=guild.icon.url
+        )
+
+        if guild.banner:
+            embed.set_image(
+                url=guild.banner.url
+            )
+        
+        if guild.me.guild_permissions.view_audit_log:
+
+
+            async for entry in guild.audit_logs(
+                limit=10,
+                action=discord.AuditLogAction.bot_add
+            ):
+                
+                if entry.target and entry.target.id == guild.me.id:
+                    embed.set_footer(
+                        text=f"Invited by {entry.user} | {entry.user.id}",
+                        icon_url=entry.user.avatar
+                    )
+
+                    break
+        
+        channel = await self.client.fetch_channel(_settings.DEV_LOGS_CHANNEL)
+
+        now = int(time())
+
+        await channel.send(
+            embed=embed,
+            content=(
+                f"🔰 **Name**: `{guild.name}`\n"
+                f"💠 **ID**: `{guild.id}`\n"
+                f"👑 **Owner**: `{guild.owner}`\n"
+                f"⌚️ **Timestamp**: <t:{now}:F>"
+            ),
+            view=PersistentViews.GuildJoinedView(
+                self.client
+            )
+        )
+            
+        
 
 
 async def setup(c):

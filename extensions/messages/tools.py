@@ -761,7 +761,7 @@ class Tools(Cog):
             )
 
             view.message = await ctx.send(
-                content=":eyes: Ok, now enter your message.",
+                content=f":eyes: Ok {member.mention}, now enter your message.",
                 view=view
             )
 

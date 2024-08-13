@@ -12,6 +12,8 @@ from discord.ui import button
 
 from bot import __name__ as name
 from bot import __version__ as version
+from re import search as _search
+from discord import ChannelType
 
 from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker
@@ -184,8 +186,8 @@ class EmojisView(Pagination):
             thinking=True
         )
 
-        check_mark = emojis.get("checkmark")
-        cross_mark = emojis.get("crossmark")
+        check_mark = emojis.get('checkmark')
+        cross_mark = emojis.get('crossmark')
 
         emoji = self.emojis[self.index]
         url = "https://cdn.discordapp.com/emojis/{}.png".format(emoji.get("id"))
@@ -581,6 +583,135 @@ class PersistentViews:
     def __init__(self, client: commands.Bot) -> None:
         self.client = client
 
+    
+    class GuildJoinedView(_View):
+        def __init__(
+                self, 
+                client: commands.Bot
+        ):
+
+            self.client = client
+
+
+            super().__init__(
+                timeout=None
+            )
+    
+
+        def _find_guild(
+                self,
+                message_content: str,
+                /
+        ):
+            
+            pattern = r"ID\*\*:\s*`(\d+)`"
+
+            content_search = _search(
+                pattern=pattern,
+                string=message_content
+            )
+
+            guild_id = content_search.group(1)
+
+            if guild_id:
+                return self.client.get_guild(int(guild_id))
+            
+            return guild_id
+
+        @button(
+            label="Generate Invite link",
+            custom_id="gen-invite",
+            style=ButtonStyle.gray,
+            emoji="➕",
+        )
+        async def gen_invite(
+            self,
+            inter: Interaction,
+            btn: Button
+        ):
+            await inter.response.defer(
+                thinking=True,
+                ephemeral=True
+            )
+
+
+            guild = self._find_guild(inter.message.content)
+
+
+            if not guild:
+                return await inter.edit_original_response(
+                    content=f"{emojis.get('crossmark')} | Didn't find this guild",
+                )
+            
+            
+
+            accessable_channels = [
+                *filter(
+                    lambda channel: channel.permissions_for(guild.me).create_instant_invite and channel.type != ChannelType.category, 
+                    guild.channels
+                )
+            ]
+
+            if not accessable_channels:
+                return await inter.edit_original_response(
+                    content=f"{emojis.get('crossmark')} | I don't have permission to create invite from guild."
+                )
+            
+            channel = accessable_channels[0]
+
+            invite_link = await channel.create_invite(
+                reason=f"For {self.client.user.name}'s developers."
+            )
+
+            await inter.edit_original_response(
+                content=f"{emojis.get('checkmark')} | {invite_link} - Channel: `#{channel.name}`"
+            )
+
+
+        @button(
+            label="Leave this guild",
+            custom_id="leave-guild",
+            style=ButtonStyle.danger
+        )
+        async def leave_guild(
+            self,
+            inter: Interaction,
+            btn: Button
+        ):
+            
+            await inter.response.defer(
+                thinking=True,
+                ephemeral=True
+            )
+
+
+            guild = self._find_guild(inter.message.content)
+
+
+            if not guild:
+                return await inter.edit_original_response(
+                    content=f"{emojis.get('crossmark')} | Didn't find this guild",
+                )
+            try:
+                await guild.leave()
+                await inter.edit_original_response(
+                    content=f"{emojis.get('checkmark')} | Leaved `{guild.name}`"
+                )
+            
+            except HTTPException:
+
+                await inter.edit_original_response(
+                    content=f"{emojis.get('crossmark')} | Failed to leave `{guild.name}`"
+                )
+
+
+    def add_views(
+            self
+    ) -> None:
+        
+        for view in self.views:
+            self.client.add_view(view=view(client=self.client))
+    
     @property
     def views(self):
         for name in dir(self):

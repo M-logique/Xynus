@@ -33,17 +33,15 @@ class Client(_commands.Bot):
 
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
-        strip_aftre_prefix = settings.STRIP_AFTER_PREFIX
 
         self.view_cache = {}
 
         super().__init__(
             command_prefix=_commands.when_mentioned_or(*prefix),
             owner_ids=owner_ids,
-            strip_after_prefix=strip_aftre_prefix,
+            strip_after_prefix=True,
             allowed_mentions=allowed_mentions, 
             intents=intents,
-            help_command=None,
             **options
         )
 

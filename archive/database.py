@@ -1,11 +1,13 @@
 import json
+import sqlite3
 from typing import Any, Dict, Optional, Sequence, Union
-from asyncpg import Connection
 
-class KVDatabase:
+
+class Database:
     def __init__(
             self,
-            connection: Connection
+            connection_path: Optional[str] = "./DataBase.db",
+            tables: Sequence[str] = ["main"]
 
     ) -> None:
         """Initialize the Database object.
@@ -19,29 +21,32 @@ class KVDatabase:
         """
 
 
-        self._connection = connection
+        self._connection = sqlite3.Connection(
+            connection_path
+        )
         
 
+        self._setup(tables)
 
-    async def get(
+
+
+    def get(
             self, 
             key: str, 
-            
+            table: Optional[str] = "main"
     ) -> Union[None, Any]:
         """Retrieve a value from the database using a hierarchical key.
 
         Parameters:
-        key (str): The hierarchical key to search for, which may include nested levels separated by dots.
+        key (str): The hierarchical key to search for.
+        table (Optional[str]): The table to query. Defaults to "main".
 
         Returns:
         Union[None, Any]: The value associated with the key, or None if the key does not exist.
-
-        Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
         """
         keys = key.split('.')
         root_key = keys[0]
-        root_value = await self._get(root_key)
+        root_value = self._get(root_key, table)
         if root_value is None:
             return None
         try:
@@ -49,56 +54,52 @@ class KVDatabase:
         except KeyError:
             return root_value
 
-    async def set(
+    def set(
             self, 
             key: str, 
             value: Any, 
-            
+            table: Optional[str] = "main"
     ) -> None:
         """Set a value in the database using a hierarchical key.
 
         Parameters:
-        key (str): The hierarchical key to insert or update, which may include nested levels separated by dots.
-        value (Any): The value to be stored, which will be serialized to JSON.
+        key (str): The hierarchical key to insert or update.
+        value (Any): The value to be stored.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
-
-        Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
         """
         keys = key.split('.')
 
         root_key = keys[0]
 
-        root_value = await self._get(root_key) or {}
+        root_value = self._get(root_key, table) or {}
         if not isinstance(root_value, dict):
             root_value = {}
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
 
         data[keys[-1]] = value
 
-        await self._set(root_key, root_value)
+        self._set(key=root_key, value=root_value, table=table)
 
-    async def delete(
+    def delete(
             self, 
             key: str, 
-            
+            table: Optional[str] = "main"
     ) -> bool:
         """Delete a value from the database using a hierarchical key.
 
         Parameters:
-        key (str): The hierarchical key to delete, which may include nested levels separated by dots.
+        key (str): The hierarchical key to delete.
+        table (Optional[str]): The table to delete from. Defaults to "main".
 
         Returns:
         bool: True if the key was deleted successfully, False otherwise.
-
-        Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
         """
         keys = key.split('.')
         root_key = keys[0]
-        root_value = await self._get(root_key)
+        root_value = self._get(root_key, table)
 
         if root_value is None:
             return False
@@ -109,43 +110,45 @@ class KVDatabase:
         if keys[-1] in data:
             del data[keys[-1]]
             if data == {}:
-                return await self._delete(key=root_key)
+                return self._delete(key=root_key, table=table)
             
-            await self._set(root_key, root_value)
+            self._set(root_key, root_value, table)
             return True
         
 
-        return await self._delete(
-            key,
+        return self._delete(
+            key=key,
+            table=table
         )
 
 
 
-    async def sum(
+    def sum(
             self, 
             key: str, 
             value: float, 
-            
+            table: Optional[str] = "main"
     ) -> None:
         """Add a number to a stored value in the database.
 
         Parameters:
         key (str): The hierarchical key to update.
         value (float): The number to add.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
         ValueError: If the value or the stored value is not a number.
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
         if not self._is_float(value):
             raise ValueError("The value should be an integer or float.")
         keys = key.split('.')
         root_key = keys[0]
-        root_value = await self._get(root_key) or {}
+        root_value = self._get(root_key, table) or {}
         if not isinstance(root_value, dict):
             root_value = {}
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
@@ -153,26 +156,27 @@ class KVDatabase:
             raise ValueError("The value at the key should be an integer or float.")
         
         data[keys[-1]] = data.get(keys[-1], 0) + value
-        await self._set(root_key, root_value)
+        self._set(root_key, root_value, table)
 
-    async def sub(
+    def sub(
             self, 
             key: str, 
             value: float, 
-            
+            table: Optional[str] = "main"
     ) -> None:
         """Subtract a number from a stored value in the database.
 
         Parameters:
         key (str): The hierarchical key to update.
         value (float): The number to subtract.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
         ValueError: If the value or the stored value is not a number.
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
         if not self._is_float(value):
             raise ValueError("The value should be an integer or float.")
@@ -181,40 +185,41 @@ class KVDatabase:
         keys = key.split('.')
 
         root_key = keys[0]
-        root_value = await self._get(root_key) or {}
+        root_value = self._get(root_key, table) or {}
         if not isinstance(root_value, dict):
             root_value = {}
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
         if not self._is_float(data.get(keys[-1], 0)):
             raise ValueError("The value at the key should be an integer or float.")
         data[keys[-1]] = data.get(keys[-1], 0) - value
-        await self._set(root_key, root_value)
+        self._set(root_key, root_value, table)
 
-    async def push(
+    def push(
         self, 
         key: str, 
         value: Any, 
-        
+        table: Optional[str] = "main"
     ) -> None:
         """Append a value to a list stored in the database.
 
         Parameters:
         key (str): The hierarchical key to append the value to.
         value (Any): The value to append.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
-        ValueError: If the existing value at the key is not a list.
-        asyncpg.PostgresError: If there is an error executing the query.
+        ValueError: If the existing value is not a list or is not empty.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
 
         keys = key.split('.')
 
         root_key = keys[0]
-        root_value = await self._get(root_key) or {}
+        root_value = self._get(root_key, table) or {}
         if not isinstance(root_value, dict):
             root_value = {}
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
@@ -227,33 +232,34 @@ class KVDatabase:
         else:
 
            data[keys[-1]].append(value)
-        await self._set(root_key, root_value)
+        self._set(root_key, root_value, table)
     
-    async def pull(
+    def pull(
         self, 
         key: str, 
         value: Any, 
-        
+        table: Optional[str] = "main"
     ) -> None:
         """Remove a value from a list stored in the database.
 
         Parameters:
-        key (str): The hierarchical key to remove the value from.
+        key (str): The key to remove the value from.
         value (Any): The value to remove.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
-        ValueError: If the existing value at the key is not a list.
-        asyncpg.PostgresError: If there is an error executing the query.
+        ValueError: If the existing value is not a list.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
 
         keys = key.split('.')
 
         root_key = keys[0]
-        root_value = await self._get(root_key) or {}
+        root_value = self._get(root_key, table) or {}
         if not isinstance(root_value, dict):
             root_value = {}
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
@@ -266,119 +272,135 @@ class KVDatabase:
            
            data[keys[-1]].remove(value)
         
-        await self._set(root_key, root_value)
+        self._set(root_key, root_value, table)
 
 
-    async def _setup(
+    def _setup(
             self,
+            tables: Sequence[str] = ["main"]
 
     ) -> None:
-        """Set up the kv_table in the database.
+        """Set up the tables in the database.
 
+        Parameters:
+        tables (Sequence[str]): List of table names to create. Defaults to ["main"].
 
         Returns:
         None
-
-        Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
         """
 
-        query = self._load_query("setup.sql")
 
-        await self._fetch(query)
+        cur = self._connection.cursor()
+        for table in tables:
+            cur.execute(f'CREATE TABLE IF NOT EXISTS "{table}" (key UNIQUE, value)')
+        
+        self._connection.commit()
 
 
             
 
-    async def _get(
+    def _get(
             self,
             key: str,
+            table: Optional[str] = "main"
 
     ) -> Union[None, Any]:
         """Retrieve a value from the database based on the key.
 
         Parameters:
-        key (str): The key to search for.
+        key (str): The key to search for in the table.
+        table (Optional[str]): The table to query. Defaults to "main".
 
         Returns:
         Union[None, Any]: The value associated with the key, or None if the key does not exist.
 
         Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
-        query = self._load_query("get.sql")
 
+        cur = self._connection.cursor()
 
-        result = await self._fetch(query, (key, ))
-        
-        if result:
+        selected_value = [*cur.execute(f'SELECT value FROM "{table}" WHERE key = ?', (key,))]
 
-            return json.loads(*result[0])
+        if selected_value != []:
+            if len(selected_value[0]) > 0:
+
+                return json.loads(selected_value[0][0])
 
         return None
                 
 
 
-    async def _set(
+    def _set(
             self,
             key: str,
             value: Any,
-            
+            table: Optional[str] = "main"
 
     ) -> None:
         """Set a value in the database for a specific key.
 
         Parameters:
         key (str): The key to insert or update.
-        value (Any): The value to be stored, which will be serialized to JSON.
+        value (Any): The value to be stored.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
+        ValueError: If the value cannot be serialized to JSON.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
         value = json.dumps(value)
+        cur = self._connection.cursor()
 
 
-        query = self._load_query("set.sql")
+        if self._get(key, table):
+            cur.execute(f'UPDATE "{table}" SET value = ? WHERE key = ?', (value, key))
+        else:
+            cur.execute(f'INSERT INTO "{table}" (key, value) VALUES (?, ?)', (key, value))
 
-        await self._fetch(query, (key, value))
+
+        self._connection.commit()
 
         
     
-    async def _delete(
+    def _delete(
             self,
             key: str,
-            
+            table: Optional[str] = "main"
 
     ) -> bool:
         """Delete a key-value pair from the database.
 
         Parameters:
         key (str): The key to delete.
+        table (Optional[str]): The table to delete from. Defaults to "main".
 
         Returns:
         bool: True if the key was deleted successfully, False otherwise.
 
         Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
 
-        old_value = await self._get(
+        old_value = self._get(
             key,
+            table
         )
 
+        cur = self._connection.cursor()
+        cur.execute(f"DELETE FROM \"{table}\" WHERE key = ?", (key,))
+        
+        self._connection.commit()
 
-        query = self._load_query("delete.sql")
-
-        await self._fetch(query, (key,))
-
-        new_value = await self._get(
+        new_value = self._get(
             key,
+            table
         )
 
         return old_value != new_value
@@ -387,11 +409,11 @@ class KVDatabase:
     
 
     
-    async def _sum(
+    def _sum(
             self,
             key: str,
             value: float,
-            
+            table: Optional[str] = "main"
             
     ) -> None:
         """Add a number to a stored value in the database.
@@ -399,17 +421,19 @@ class KVDatabase:
         Parameters:
         key (str): The key to update.
         value (float): The number to add.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
         ValueError: If the value or the stored value is not a number.
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
-        old_value = await self._get(
+        old_value = self._get(
             key,
+            table
         )
 
         if not self._is_float(value):
@@ -421,22 +445,24 @@ class KVDatabase:
                 raise ValueError("The old value should be an integer or float")
 
             new_value = old_value + value
-            return await self._set(
+            return self._set(
                 key,
                 new_value,
+                table
             )
         
 
-        return await self._set(
+        return self._set(
             key,
             value,
+            table
         )
      
-    async def _sub(
+    def _sub(
             self,
             key: str,
             value: float,
-            
+            table: Optional[str] = "main"
             
     ) -> None:
         """Subtract a number from a stored value in the database.
@@ -444,17 +470,19 @@ class KVDatabase:
         Parameters:
         key (str): The key to update.
         value (float): The number to subtract.
+        table (Optional[str]): The table to update. Defaults to "main".
 
         Returns:
         None
 
         Raises:
         ValueError: If the value or the stored value is not a number.
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
-        old_value = await self._get(
+        old_value = self._get(
             key,
+            table
         )
 
         if not self._is_float(value):
@@ -466,55 +494,60 @@ class KVDatabase:
                 raise ValueError("The old value should be an integer or float")
 
             new_value = old_value - value
-            return await self._set(
+            return self._set(
                 key,
                 new_value,
+                table
             )
         
 
-        return await self._set(
+        return self._set(
             key,
             value,
+            table
         )
 
 
 
-    async def select_all(
+    def values(
             self,
+            table_name: str
 
     ) -> Sequence[Dict[str, Any]]:
-        """Retrieve all key-value pairs from the kv_table.
+        """Retrieve all key-value pairs from a table.
+
+        Parameters:
+        table_name (str): The name of the table to query.
 
         Returns:
         Sequence[Dict[str, Any]]: A list of dictionaries containing key-value pairs.
 
-
         Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
+        sqlite3.DatabaseError: If there is an error executing the query.
         """
 
-        query = self._load_query("select_all.sql")
 
-        rows = await self._fetch(query)
-        
-        values = [{row['key']: row['value']} for row in rows]
+        cur = self._connection.cursor()
+
+        cur.execute(f'SELECT * FROM {table_name}')
+        values = [{row[0]: row[1]} for row in cur.fetchall()]
         
         return values
 
 
-    async def __aenter__(
+    def __enter__(
             self
-    ) -> "KVDatabase":
+    ) -> "Database":
         """Enter the runtime context related to this object.
 
         Returns:
-        KVDatabase: The current instance of the class.
+        Database: The current instance of the class.
         """
-        await self._setup()
+
 
         return self
     
-    async def __aexit__(
+    def __exit__(
             self,
             exc_type: Any, 
             exc_val: Any, 
@@ -531,7 +564,8 @@ class KVDatabase:
         None
         """
 
-        await self._connection.close()
+        self._connection.commit()
+        self._connection.close()
 
 
     def _is_float(
@@ -570,59 +604,9 @@ class KVDatabase:
 
         Returns:
         Union[Dict, Any]: The final dictionary or value at the end of the key sequence.
-    
         """
         for key in keys[:-1]:
             if create_missing and key not in data:
                 data[key] = {}
             data = data[key]
         return data
-
-    def _load_query(
-            self,
-            name: str, 
-            /
-    ) -> str:
-        """Load an SQL query from a file.
-
-        Parameters:
-        name (str): The name of the SQL file containing the query.
-
-        Returns:
-        str: The contents of the SQL file as a string.
-
-        Raises:
-        FileNotFoundError: If the file specified by `path` does not exist.
-        IOError: If there is an error reading the file.
-    
-        """
-
-
-        base_path = "./sql/keyvalue_queries/"
-        with open(base_path+name) as file:
-            return file.read().strip()
-        
-    async def _fetch(
-            self,
-            query: str,
-            values: Sequence[Any] = [],
-            /
-    ) -> list:
-        """Execute a SQL query with the provided values and return the result.
-
-        Parameters:
-        query (str): The SQL query to execute.
-        values (Sequence[Any]): The values to be used in the query (optional).
-
-        Returns:
-        Sequence[Dict[str, Any]]: The result of the query, where each row is represented as a dictionary.
-
-        Raises:
-        asyncpg.PostgresError: If there is an error executing the query.
-        """
-
-
-        return await self._connection.fetch(
-            query,
-            *values
-        )

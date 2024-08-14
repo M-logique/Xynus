@@ -14,7 +14,7 @@ from discord.ui import View as _View
 from .. import __name__ as name
 from .. import __version__ as version
 from ..templates.embeds import ErrorEmbed
-from ..utils.database import Database
+from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
@@ -152,7 +152,7 @@ class Client(_commands.Bot):
         if not path.exists("./data"):
             _makedirs("./data")
         
-        self.db = Database("./data/DataBase.db", ["main", "guilds"])
+        self.db = KVDatabase("./data/DataBase.db")
         from ..templates.views import PersistentViews
 
         view_collection = PersistentViews(self)

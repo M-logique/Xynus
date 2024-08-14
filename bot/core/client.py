@@ -11,6 +11,7 @@ from discord import Status
 from discord.ext import commands as _commands
 from discord.ui import View as _View
 
+from asyncpg import connect, Connection
 from .. import __name__ as name
 from .. import __version__ as version
 from ..templates.embeds import ErrorEmbed
@@ -151,8 +152,21 @@ class Client(_commands.Bot):
     async def setup_hook(self) -> None:
         if not path.exists("./data"):
             _makedirs("./data")
-        
-        self.db = KVDatabase("./data/DataBase.db")
+        try:
+            self.pool: Connection = await connect(
+                dsn=settings.DSN,
+                host=settings.HOST,
+                password=settings.PASSWORD,
+                user=settings.USERNAME,
+                database=settings.DATABASE_NAME,
+                port=settings.PORT
+            )
+            self.db = KVDatabase(self.pool)
+            self.logger.success("Connected to the database.")
+        except Exception as err:
+
+            self.logger.error(f"Failed to connect to the database {err}")
+
         from ..templates.views import PersistentViews
 
         view_collection = PersistentViews(self)

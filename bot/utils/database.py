@@ -5,7 +5,8 @@ from asyncpg import Connection
 class KVDatabase:
     def __init__(
             self,
-            connection: Connection
+            connection: Connection,
+            /
 
     ) -> None:
         """Initialize the Database object.

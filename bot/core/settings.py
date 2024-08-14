@@ -7,7 +7,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file=".env",
-        env_ignore_empty=True,
+        env_ignore_empty=False,
+        extra="allow",
     )
 
     # Main Vars
@@ -17,5 +18,16 @@ class Settings(BaseSettings):
     PREFIX: List[str] = [","]
     STRIP_AFTER_PREFIX: Optional[bool] = True
     DEV_LOGS_CHANNEL: int
+
+    DSN: Optional[str] = None
+
+    DATABASE_NAME: Optional[str] = None
+
+    HOST: Optional[str] = None
+    PORT: Optional[int] = None
+    
+    USERNAME: Optional[str] = None
+    PASSWORD: Optional[str] = None
+
 
 settings = Settings()

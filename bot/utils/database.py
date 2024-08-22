@@ -1,6 +1,8 @@
 import json
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Sequence, Union
+
 from asyncpg import Connection
+
 
 class KVDatabase:
     def __init__(
@@ -9,11 +11,10 @@ class KVDatabase:
             /
 
     ) -> None:
-        """Initialize the Database object.
+        """Initialize the KVDatabase object.
 
         Parameters:
-        connection_path (Optional[str]): Path to the SQLite database file. Defaults to "./DataBase.db".
-        tables (Sequence[str]): Table names to be created in the database if they do not exist.
+        connection (asyncpg.Connection): The database connection object.
 
         Returns:
         None
@@ -284,7 +285,12 @@ class KVDatabase:
         asyncpg.PostgresError: If there is an error executing the query.
         """
 
-        query = self._load_query("setup.sql")
+        query = """
+        CREATE TABLE IF NOT EXISTS kv_table (
+            key TEXT UNIQUE,
+            value JSONB
+        );
+        """
 
         await self._fetch(query)
 
@@ -308,7 +314,11 @@ class KVDatabase:
         asyncpg.PostgresError: If there is an error executing the query.
         """
 
-        query = self._load_query("get.sql")
+        query = """
+        SELECT "value"
+        FROM kv_table 
+        WHERE "key" = $1;
+        """
 
 
         result = await self._fetch(query, (key, ))
@@ -344,7 +354,12 @@ class KVDatabase:
         value = json.dumps(value)
 
 
-        query = self._load_query("set.sql")
+        query = """
+        INSERT INTO kv_table ("key", "value")
+        VALUES ($1, $2)
+        ON CONFLICT ("key") DO UPDATE
+        SET "value" = EXCLUDED."value";
+        """
 
         await self._fetch(query, (key, value))
 
@@ -374,7 +389,10 @@ class KVDatabase:
         )
 
 
-        query = self._load_query("delete.sql")
+        query = """
+        DELETE FROM kv_table
+        WHERE "key" = CAST($1 AS TEXT);
+        """
 
         await self._fetch(query, (key,))
 
@@ -494,7 +512,9 @@ class KVDatabase:
         asyncpg.PostgresError: If there is an error executing the query.
         """
 
-        query = self._load_query("select_all.sql")
+        query = """
+        SELECT * FROM kv_table;
+        """
 
         rows = await self._fetch(query)
         
@@ -599,7 +619,7 @@ class KVDatabase:
         """
 
 
-        base_path = "./sql/keyvalue_queries/"
+        base_path = "./sql/keyvalue/"
         with open(base_path+name) as file:
             return file.read().strip()
         

@@ -7,7 +7,9 @@ from discord.ext import commands
 from ..utils.functions import disable_all_items
 
 
-def check_views(coro):
+def check_views(
+        coro: FunctionType
+):
     @wraps(coro)
     async def wrapper(*args, **kwargs):
         from bot.core import Client
@@ -29,7 +31,9 @@ def check_views(coro):
     return wrapper
 
 
-def check_views_interaction(coro):
+def check_views_interaction(
+        coro: FunctionType
+):
     @wraps(coro)
     async def wrapper(*args, **kwargs):
         

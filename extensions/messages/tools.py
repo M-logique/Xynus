@@ -7,10 +7,9 @@ from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
 from bot.core import _settings
-from bot.core.client import Client
 from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
-from bot.templates.cogs import Cog
+from bot.templates.cogs import XynusCog
 from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed
 from bot.templates.modals import WhisperModal
 from bot.templates.views import (DynamicHelpView, EmojisView, Pagination,
@@ -28,11 +27,9 @@ crossmark = _emojis.get("crossmark")
 exclamation = _emojis.get("exclamation")
 
 
-class Tools(Cog):
+class Tools(XynusCog):
 
-    def __init__(self, client: Client) -> None:
-        self.emoji = _emojis.get("tools")
-        super().__init__(client)
+    emoji = _emojis.get("tools")
     
     @commands.hybrid_command(
         name="steal",

@@ -6,9 +6,8 @@ from wavelink import (Node, NodeReadyEventPayload, Playable, Player, Playlist,
                       Pool, Search, TrackEndEventPayload, TrackSource,
                       TrackStartEventPayload)
 
-from bot.core import Client
 from bot.templates.buttons import DeleteButton
-from bot.templates.cogs import Cog
+from bot.templates.cogs import XynusCog
 from bot.templates.embeds import SimpleEmbed
 from bot.templates.views import Pagination
 from bot.templates.wrappers import check_for_player, check_voice_client
@@ -52,11 +51,10 @@ LAVALINKS = [
 ]
 
 
-class Music(Cog):
-    def __init__(self, client: Client) -> None:
-        self.emoji = emojis.get("music_note")
-        self.cache = {}
-        super().__init__(client)
+class Music(XynusCog):
+
+    emoji = emojis.get("music_note")
+    cache = set()
 
     # Listeners
     
@@ -679,7 +677,7 @@ class Music(Cog):
         return total_milliseconds
 
 
-async def setup(c: Client):
+async def setup(c):
     nodes = [
         Node(
             identifier=i.get("identifier"),

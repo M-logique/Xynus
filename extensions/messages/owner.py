@@ -4,9 +4,9 @@ from time import time
 import discord
 from discord.ext import commands
 
-from bot.core import Client, _settings
+from bot.core import _settings
 from bot.templates.buttons import DeleteButton
-from bot.templates.cogs import Cog
+from bot.templates.cogs import XynusCog
 from bot.templates.embeds import SimpleEmbed
 from bot.templates.views import (Pagination, PersistentViews,
                                  ViewWithDeleteButton)
@@ -17,15 +17,9 @@ _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
 
 
-class Owner(Cog):
+class Owner(XynusCog):
 
-    def __init__(self, client: Client) -> None:
-        
-        self.emoji = _emojis.get("crown")
-
-        super().__init__(client)
-    
-
+    emoji = _emojis.get("crown")
 
 
     @commands.command(

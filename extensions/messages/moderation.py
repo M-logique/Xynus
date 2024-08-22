@@ -6,8 +6,7 @@ from discord import (AllowedMentions, Button, Interaction, Member, Message,
                      NotFound, User, app_commands)
 from discord.ext import commands
 
-from bot.core.client import Client
-from bot.templates.cogs import Cog
+from bot.templates.cogs import XynusCog
 from bot.templates.embeds import SimpleEmbed
 from bot.templates.views import YesOrNoView
 from bot.utils.config import Emojis
@@ -18,12 +17,9 @@ checkmark = _emojis.get("checkmark")
 crossmark = _emojis.get("crossmark")
 exclamation = _emojis.get("exclamation")
 
-class Moderation(Cog):
+class Moderation(XynusCog):
 
-    def __init__(self, client: Client) -> None:
-        super().__init__(client)
-        self.emoji = _emojis.get("shield")
-
+    emoji = _emojis.get("shield")
 
     @commands.hybrid_command(
         name="ban", 

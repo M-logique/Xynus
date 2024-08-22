@@ -11,7 +11,8 @@ class Emojis:
     
     def get(
             self,
-            key: str
+            key: str, 
+            /
     ) -> Union[None, Any]:
 
         return self._config.get(key)

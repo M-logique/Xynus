@@ -2,6 +2,8 @@ import os as _os
 import pkgutil as _pkgutil
 import re as _re
 from ast import Expr, If, Return, With, fix_missing_locations
+from base64 import b64decode as _b64decode
+from base64 import b64encode as _b64encode
 from datetime import timedelta as _timedelta
 from difflib import get_close_matches as _get_close_matches
 from inspect import Parameter as _Parameter
@@ -20,6 +22,7 @@ from discord.ext.commands import Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
+
 
 
 def chunker(text, chunk_size: int) -> list:
@@ -266,3 +269,18 @@ def insert_returns(body):
     # for with blocks, again we insert returns into the body
     if isinstance(body[-1], With):
         insert_returns(body[-1].body)
+
+
+def encrypt(text: str, /) -> str:
+    """To quickly encode a text to base64."""
+
+    if text is not None:
+        return _b64encode(str(text).encode("utf-8")).decode("utf-8")
+
+def decrypt(text: str, /) -> str:
+    """To quickly decode an encrypted text."""
+    
+    if text is not None:
+        return _b64decode(str(text).encode("utf-8")).decode("utf-8")
+    
+    

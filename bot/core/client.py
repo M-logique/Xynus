@@ -1,6 +1,7 @@
 from os import makedirs as _makedirs
 from os import path
 
+from asyncpg import Connection, connect
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
 from discord import AllowedMentions as _AllowedMentions
@@ -10,8 +11,11 @@ from discord import Intents as _Intents
 from discord import Status
 from discord.ext import commands as _commands
 from discord.ui import View as _View
+from discord.utils import cached_property as _cached_property
+from discord import Color as _Color
+from discord import Message as _Message
+from typing import Union as _Union
 
-from asyncpg import connect, Connection
 from .. import __name__ as name
 from .. import __version__ as version
 from ..templates.embeds import ErrorEmbed
@@ -19,23 +23,28 @@ from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
+from ..templates.context import XynusContext
+from typing import TypeVar, Type
 
 
-class Client(_commands.Bot):
 
+DCT = TypeVar("DCT", bound="XynusContext")
+
+# Custom context handling from:
+#   https://github.com/DuckBot-Discord/duck-hideout-manager-bot/blob/main/utils/bot_bases/context.py
+
+
+class Xynus(_commands.AutoShardedBot):
+    
 
     def __init__(self, intents: _Intents, 
                 allowed_mentions: _AllowedMentions,
                 **options):
 
-        self.logger = _Logger(name)
-
 
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
-
-        self.view_cache = {}
-
+        
         super().__init__(
             command_prefix=_commands.when_mentioned_or(*prefix),
             owner_ids=owner_ids,
@@ -44,6 +53,11 @@ class Client(_commands.Bot):
             intents=intents,
             **options
         )
+
+        self.logger = _Logger(name)
+        self.view_cache = set()
+        self.context_class: _Union[XynusContext, _commands.Context] = _commands.Context
+        
 
     async def on_ready(self):
 
@@ -81,7 +95,7 @@ class Client(_commands.Bot):
     async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
         from ..templates.views import ViewWithDeleteButton
         if isinstance(error, _commands.CommandNotFound):
-            return
+            return # type: ignore
 
         elif isinstance(error, _commands.MissingPermissions):
             text = "Sorry **{}**, you do not have permissions to do that!".format(ctx.message.author)
@@ -95,7 +109,7 @@ class Client(_commands.Bot):
         else: 
             err = str(error)
 
-            text = err[:300:]
+            text = err[:300:] # A Large error text is not good to display.
 
             if len(err) > 300:
                 text += "..."
@@ -110,12 +124,8 @@ class Client(_commands.Bot):
             )
 
         except (_HTTPException, _Forbidden):
-            pass
+            pass # type: ignore
         
-        
-
-
-
     async def on_error(self, event_method: str, /, *args, **kwargs):
         formatted_kwargs = " ".join(f"{x}={y}" for x, y in kwargs.items())
         self.logger.error(
@@ -131,6 +141,7 @@ class Client(_commands.Bot):
 
                 await self.load_extension(extension)
                 self.logger.success("loaded {}".format(extension))
+                
             except Exception as err:
 
                 self.logger.error("There was an error loading {}, Error: {}".format(extension, err))
@@ -147,6 +158,26 @@ class Client(_commands.Bot):
             root_logger=self.logger.root
         )
     
+
+
+    async def get_context(
+        self, message: _Message, *, cls: Type[DCT] | None = None
+    ) -> _Union[XynusContext, _commands.Context["Xynus"]]:
+        """|coro|
+
+        Used to get the invocation context from the message.
+
+        Parameters
+        ----------
+        message: :class:`~discord.Message`
+            The message to get the prefix of.
+        cls: Type[:class:`XynusContext`]
+            The class to use for the context.
+        """
+        
+        new_cls = cls or self.context_class
+        return await super().get_context(message, cls=new_cls)
+
     async def setup_hook(self) -> None:
         if not path.exists("./data"):
             _makedirs("./data")
@@ -159,8 +190,15 @@ class Client(_commands.Bot):
                 database=settings.DATABASE_NAME,
                 port=settings.PORT
             )
+
             self.db = KVDatabase(self.pool)
+            await self.db._setup()
+            
+            setup_query = self._load_query("setup.sql")
+            await self.pool.fetch(setup_query)
+
             self.logger.success("Connected to the database.")
+
         except Exception as err:
 
             self.logger.error(f"Failed to connect to the database {err}")
@@ -170,6 +208,18 @@ class Client(_commands.Bot):
         view_collection = PersistentViews(self)
         view_collection.add_views()
 
+        """|coro|
+
+        Used to get the invocation context from the message.
+
+        Parameters
+        ----------
+        message: :class:`~discord.Message`
+            The message to get the prefix of.
+        cls: Type[:class:`HideoutContext`]
+            The class to use for the context.
+        """
+
     def set_user_view(
             self,
             user_id: int,
@@ -178,4 +228,34 @@ class Client(_commands.Bot):
         
         self.view_cache[user_id] = view
 
+    def _load_query(
+            self,
+            name: str, 
+            /
+    ) -> str:
+        """Load an SQL query from a file.
+
+        Parameters:
+        name (str): The name of the SQL file containing the query.
+
+        Returns:
+        str: The contents of the SQL file as a string.
+
+        Raises:
+        FileNotFoundError: If the file specified by `path` does not exist.
+        IOError: If there is an error reading the file.
     
+        """
+
+
+        base_path = "./sql/"
+        with open(base_path+name) as file:
+            return file.read().strip()
+        
+
+    @_cached_property
+    def color(self):
+        """Retrives client's vanity color."""
+
+
+        return _Color.from_rgb(*settings.MAIN_COLOR)

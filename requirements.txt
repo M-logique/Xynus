@@ -5,12 +5,15 @@ async-timeout==4.0.3
 asyncpg==0.29.0
 attrs==23.2.0
 cffi==1.16.0
+chat_exporter==2.8.0
 colorlog==6.8.2
 croniter==3.0.3
 discord==2.3.2
 discord.py==2.4.0
 dnspython==1.16.0
+emoji==2.12.1
 frozenlist==1.4.1
+grapheme==0.6.0
 idna==3.7
 isort==5.13.2
 multidict==6.0.5

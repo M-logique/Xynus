@@ -64,7 +64,8 @@ class Moderation(XynusCog):
 
         
         confirm = await ctx.confirm(
-            f"Are you sure that you want to ban {th} {len(users)} user{s}?"
+            f"Are you sure that you want to ban {th} {len(users)} user{s}?",
+            owner=ctx.author.id
         )
 
         if confirm is True:
@@ -133,7 +134,8 @@ class Moderation(XynusCog):
 
         
         confirm = await ctx.confirm(
-            f"Are you sure that you want to unban {th} {len(users)} user{s}?"
+            f"Are you sure that you want to unban {th} {len(users)} user{s}?",
+            owner=ctx.author.id
         )
 
         if confirm is True:
@@ -425,6 +427,13 @@ class Moderation(XynusCog):
         
 
         total_messages = len(messages)
+
+        if not await ctx.confirm(
+            f"Are you sure that you want to delete {total_messages} message"
+            "?" if total_messages == 1 else "s?",
+            owner=ctx.author.id
+        ):
+            return
 
         chunks = chunker(messages, 100)
 

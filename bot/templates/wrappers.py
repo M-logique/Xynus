@@ -5,24 +5,34 @@ from typing import Union
 from discord.ext import commands
 
 from ..utils.functions import disable_all_items
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from wavelink import Player
+    from ..core import Xynus
+    from discord import Interaction
+    from .context import XynusContext
+
 
 
 def check_views(
         coro: FunctionType
 ):
+    """
+    Decorator to disable previous active view items.
+    """
     @wraps(coro)
     async def wrapper(*args, **kwargs):
-        from bot.core import Client
 
-        ctx: commands.Context = args[1]
-        client: Client = args[0].client
+        ctx: XynusContext = args[1]
+        client: Xynus = args[0].client
         user_id = ctx.author.id
 
-        prev_view = client.view_cache.get(user_id)
+        prev_view = client.views.get(user_id)
 
         if prev_view:
             await disable_all_items(prev_view)
-            del client.view_cache[user_id]
+            del client.views[user_id]
 
         
         return await coro(*args, **kwargs)
@@ -34,19 +44,22 @@ def check_views(
 def check_views_interaction(
         coro: FunctionType
 ):
+    """
+    Decorator to disable previous active view items.
+    """
     @wraps(coro)
     async def wrapper(*args, **kwargs):
         
 
-        interaction = args[1]
-        client = args[0].client
+        interaction: Interaction = args[1]
+        client: Xynus = args[0].client
         user_id = interaction.user.id
 
-        prev_view = client.view_cache.get(user_id)
+        prev_view = client.views.get(user_id)
 
         if prev_view:
             await disable_all_items(prev_view)
-            del client.view_cache[user_id]
+            del client.views[user_id]
 
         
         return await coro(*args, **kwargs)
@@ -57,12 +70,14 @@ def check_views_interaction(
 def check_voice_client(
         coro: FunctionType
 ): 
+    """
+    Decorator to check guild voice clients.
+    """
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
-        from wavelink import Player
 
 
-        ctx: commands.Context = args[1]
+        ctx: XynusContext = args[1]
 
         await ctx.defer()
 
@@ -103,12 +118,13 @@ def check_voice_client(
 def check_for_player(
         coro: FunctionType
 ): 
+    """
+    Decorator to check if there is an active player in ctx.guild or no.
+    """
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
-        from wavelink import Player
 
-
-        ctx: commands.Context = args[1]
+        ctx: XynusContext = args[1]
 
         await ctx.defer()
 

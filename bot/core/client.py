@@ -1,32 +1,46 @@
 from os import makedirs as _makedirs
 from os import path
+from typing import TYPE_CHECKING
+from typing import Optional as _Optional
+from typing import Dict as _Dict
+from typing import Tuple, Type, TypeVar
+from typing import Union as _Union
 
 from asyncpg import Connection, connect
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
-from discord import AllowedMentions as _AllowedMentions
+from discord import Color as _Color
 from discord import Forbidden as _Forbidden
 from discord import HTTPException as _HTTPException
-from discord import Intents as _Intents
 from discord import Status
+from discord import utils as _utils
 from discord.ext import commands as _commands
-from discord.ui import View as _View
 from discord.utils import cached_property as _cached_property
-from discord import Color as _Color
-from discord import Message as _Message
-from typing import Union as _Union
 
 from .. import __name__ as name
 from .. import __version__ as version
+from ..handlers.errorhandler import XynusExceptionManager
+from ..templates.context import XynusContext
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
-from ..templates.context import XynusContext
-from typing import TypeVar, Type
+
+if TYPE_CHECKING:
+    from datetime import datetime as _datetime
+
+    from discord import AllowedMentions as _AllowedMentions
+    from discord import Intents as _Intents
+    from discord import Message as _Message
+    from discord.ui import View as _View
 
 
+
+
+__all__: Tuple[str, ...] = (
+    "Xynus"
+)
 
 DCT = TypeVar("DCT", bound="XynusContext")
 
@@ -53,10 +67,16 @@ class Xynus(_commands.AutoShardedBot):
             intents=intents,
             **options
         )
-
         self.logger = _Logger(name)
-        self.view_cache = set()
+
+        self.views: _Dict[_View] = dict()
+
         self.context_class: _Union[XynusContext, _commands.Context] = _commands.Context
+        self.exceptions: XynusExceptionManager = XynusExceptionManager(self)
+
+
+        self._start_time = _Optional[_datetime] = None
+
         
 
     async def on_ready(self):
@@ -89,8 +109,10 @@ class Xynus(_commands.AutoShardedBot):
             synced = await self.tree.sync()
             self.logger.info(f"Synced {len(synced)} command(s).")
         except Exception as err:
-
             self.logger.error("Failed to sync command tree: {}".format(err))
+
+        if not self._start_time:
+            self._start_time = _utils.utcnow()
     
     async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
         from ..templates.views import ViewWithDeleteButton
@@ -226,7 +248,7 @@ class Xynus(_commands.AutoShardedBot):
             view: _View
     ) -> None:
         
-        self.view_cache[user_id] = view
+        self.views[user_id] = view
 
     def _load_query(
             self,
@@ -256,6 +278,5 @@ class Xynus(_commands.AutoShardedBot):
     @_cached_property
     def color(self):
         """Retrives client's vanity color."""
-
 
         return _Color.from_rgb(*settings.MAIN_COLOR)

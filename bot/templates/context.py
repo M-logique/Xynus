@@ -1,18 +1,16 @@
-from typing import Any, Dict, List
-from discord import Interaction, Message
+from typing import (Any, Callable, Dict, List, Optional, Sequence, Union,
+                    overload)
+
+from discord import (AllowedMentions, Embed, File, Forbidden, Interaction,
+                     Message, MessageReference, PartialMessage)
+from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import MISSING
 from discord.ext.commands.view import StringView
-from typing import Callable
-from typing import Optional, overload, Sequence, Union
-from discord import Embed, File, MessageReference, PartialMessage, AllowedMentions
 from discord.ui import View
 from discord.utils import cached_property
+
 from .views import ViewWithDeleteButton
-from discord.errors import HTTPException
-from discord import Forbidden
-
-
 
 # A large amount of code + ideas have been transferred from the HideoutManager project
 #     https://github.com/DuckBot-Discord/duck-hideout-manager-bot/blob/main/utils/bot_bases/context.py

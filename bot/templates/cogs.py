@@ -1,8 +1,10 @@
+from typing import Optional
+
+from discord import PartialEmoji
 from discord.ext import commands as _commands
 
 from ..core import Xynus as _Xynus
-from typing import Optional
-from discord import PartialEmoji
+
 
 class XynusCog(_commands.Cog):
 

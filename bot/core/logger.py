@@ -9,7 +9,7 @@ class Logger(_logging.Logger):
         self.setLevel(_logging.INFO)
 
         self.formatter = _ColoredFormatter(
-            '%(asctime)s | %(log_color)s%(levelname)s%(reset)s | %(message)s',
+            '\033[90m[%(asctime)s]%(reset)s | \033[35m%(name)s%(reset)s | %(log_color)s%(levelname)s%(reset)s | %(message)s',
             datefmt='%H:%M:%S',
             log_colors={
                 'DEBUG':    'cyan',
@@ -31,3 +31,5 @@ class Logger(_logging.Logger):
         self.addHandler(self.handler)
 
         self.info(f'{self.name} logger initialized.')
+
+Logger("sex.sex")

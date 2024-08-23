@@ -9,29 +9,28 @@ from discord import Embed as _Embed
 from discord import Interaction as _Interaction
 from discord.ext import commands as _commands
 
-from ..core.settings import settings
 from ..utils.functions import format_command_params, split_camel_case
-
-_color = _Color.from_rgb(*settings.MAIN_COLOR)
 
 
 class SimpleEmbed(_Embed):
-
+    """
+    Discord embed with a timestamp and an optional footer including client's name and avatar.
+    """
     def __init__(
             self,
-            client: _commands.Bot,
+            client: _Optional[_commands.Bot] = None,
             **kwrgs
     ):
         super().__init__(
-            color=_color,
             timestamp=_datetime.now(),
             **kwrgs
         )
 
-        self.set_footer(
-            text=client.user.name,
-            icon_url=client.user.avatar
-        )
+        if client:
+            self.set_footer(
+                text=client.user.name,
+                icon_url=client.user.avatar
+            )
 
 class ErrorEmbed(_Embed):
 
@@ -39,6 +38,7 @@ class ErrorEmbed(_Embed):
     def __init__(
         self, 
         error: str,
+        /
     ) -> None:
 
 
@@ -78,7 +78,6 @@ class CommandsEmbed(_Embed):
 
         super().__init__(
             timestamp=_datetime.now(),
-            color=_color,
             description=base,
             **kwrgs
         )
@@ -115,7 +114,6 @@ class DynamicHelpEmbed(SimpleEmbed):
 
     
         super().__init__(
-            client=client,
             description=description,
             **kwrgs
         )
@@ -168,7 +166,6 @@ class CommandInfoEmbed(SimpleEmbed):
         )
 
         super().__init__(
-            client=client,
             description = description,
             **kwrgs
         )

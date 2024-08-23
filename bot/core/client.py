@@ -67,8 +67,9 @@ class Xynus(_commands.AutoShardedBot):
         self.logger = _Logger(name)
 
         self.views: _Dict[_View] = dict()
+        
 
-        self.error_webhook_url: _Optional[str] = settings.ERROR_WEBHOOK_URL
+        self.error_webhook_url: _Optional[str] = settings.ERROR_WEBHOOK
         self._start_time: _Optional[_datetime] = None
         
         self.context_class: _Union[XynusContext, _commands.Context] = XynusContext

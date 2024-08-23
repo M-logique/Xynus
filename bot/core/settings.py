@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     USERNAME: Optional[str] = None
     PASSWORD: Optional[str] = None
 
-
-    ERROR_WEBHOOK_URL: str
+    ERROR_WEBHOOK: str
 
 settings = Settings()

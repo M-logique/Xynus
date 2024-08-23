@@ -5,12 +5,16 @@ from discord.ext import commands as _commands
 
 from ..core import Xynus as _Xynus
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core import Xynus
 
 class XynusCog(_commands.Cog):
 
     def __init__(self, client: _Xynus) -> None:
-        self.client = client
-        self.emoji = Optional[PartialEmoji] = None 
+        self.client: "Xynus" = client
+        self.emoji: Optional[PartialEmoji] = None 
         
         # Since I'm organizing commands based on Cogs,
         # I need an emoji for the SelectOption in the HelpSelect,

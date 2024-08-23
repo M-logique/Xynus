@@ -186,3 +186,15 @@ class XynusContext(commands.Context):
         """
         
         return self.bot._load_query(name)
+    
+    @property
+    def created_at(self):
+        return self.message.created_at
+
+    @property
+    def user(self):
+        return self.author
+    
+    @property
+    def channel_id(self):
+        return self.channel.id

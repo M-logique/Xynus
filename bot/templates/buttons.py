@@ -6,8 +6,16 @@ from discord import Interaction as _Interaction
 from discord import NotFound as _NotFound
 from discord.ui import Button as _Button
 
+from discord import DiscordException, Emoji, PartialEmoji
 from ..utils.config import Emojis
 from ..utils.functions import disable_all_items as _disable_all_items
+from typing import Optional, Union, Type, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+
+    from .views import EmbedEditor
+    from .modals import EmbedBaseModal
 
 emojis = Emojis()
 
@@ -58,3 +66,25 @@ class DeleteButton(_Button):
             except (_Forbidden, _NotFound):
                 pass
             
+
+
+class EditWithModalButton(_Button['EmbedEditor']):
+    def __init__(
+        self,
+        modal: Type["EmbedBaseModal"],
+        /,
+        *,
+        style: _ButtonStyle = _ButtonStyle.secondary,
+        label: Optional[str] = None,
+        disabled: bool = False,
+        emoji: Optional[Union[str, Emoji, PartialEmoji]] = None,
+        row: Optional[int] = None,
+    ):
+        self.modal = modal
+        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, row=row)
+
+    async def callback(self, interaction: _Interaction):
+        if not self.view:
+            raise DiscordException('No view was found attached to this modal.')
+        await interaction.response.send_modal(self.modal(self.view))
+

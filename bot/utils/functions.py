@@ -13,6 +13,10 @@ from typing import Iterator as _Iterator
 from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
+from discord.ext.commands import BadArgument as _BadArgument
+from re import fullmatch as _fullmatch
+
+from ..templates.exceptions import InvalidModalField
 
 from discord import Forbidden as _Forbidden
 from discord import HTTPException as _HTTPException
@@ -283,3 +287,27 @@ def decrypt(text: str, /) -> str:
         return _b64decode(str(text).encode("utf-8")).decode("utf-8")
     
     
+def verify_link(argument: str) -> str:
+    link = _fullmatch('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|%[0-9a-fA-F][0-9a-fA-F])+', argument)
+    if not link:
+        raise _BadArgument('Invalid URL provided.')
+    return link.string
+
+
+def strip_codeblock(content: str) -> str:
+    """Automatically removes code blocks from the code."""
+    # remove ```py\n```
+    if content.startswith('```') and content.endswith('```'):
+        return content.strip('```')
+
+    # remove `foo`
+    return content.strip('` \n')
+
+def to_boolean(argument: str) -> bool:
+    lowered = argument.lower()
+    if lowered in ('yes', 'y', 'true', 't', '1', 'on'):
+        return True
+    elif lowered in ('no', 'n', 'false', 'f', '0', 'off'):
+        return False
+    else:
+        raise InvalidModalField(f'{argument} is not a valid boolean value.')

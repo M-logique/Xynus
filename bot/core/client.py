@@ -26,14 +26,17 @@ from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
+from datetime import datetime as _datetime
+from aiohttp import ClientSession
+
 
 if TYPE_CHECKING:
-    from datetime import datetime as _datetime
 
     from discord import AllowedMentions as _AllowedMentions
     from discord import Intents as _Intents
     from discord import Message as _Message
     from discord.ui import View as _View
+    
 
 
 
@@ -51,13 +54,26 @@ DCT = TypeVar("DCT", bound="XynusContext")
 class Xynus(_commands.AutoShardedBot):
     
 
-    def __init__(self, intents: _Intents, 
-                allowed_mentions: _AllowedMentions,
-                **options):
+    def __init__(
+            self,
+            intents: "_Intents", 
+            allowed_mentions: "_AllowedMentions",
+            **options
+        ):
 
 
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
+        
+        self.logger = _Logger(name)
+
+        self.views: _Dict[_View] = dict()
+
+        self.error_webhook_url: _Optional[str] = "https://discord.com/api/webhooks/1276562791314096201/AGGHMaEHYdPRkJ8yYH-Jh-J6vZtosFuyUr6FUPEhr1SjfCrr20ypWCqpnmNOL4mIkcZt"
+        self._start_time: _Optional[_datetime] = None
+        
+        self.context_class: _Union[XynusContext, _commands.Context] = XynusContext
+
         
         super().__init__(
             command_prefix=_commands.when_mentioned_or(*prefix),
@@ -67,15 +83,6 @@ class Xynus(_commands.AutoShardedBot):
             intents=intents,
             **options
         )
-        self.logger = _Logger(name)
-
-        self.views: _Dict[_View] = dict()
-
-        self.context_class: _Union[XynusContext, _commands.Context] = _commands.Context
-        self.exceptions: XynusExceptionManager = XynusExceptionManager(self)
-
-
-        self._start_time = _Optional[_datetime] = None
 
         
 
@@ -130,6 +137,7 @@ class Xynus(_commands.AutoShardedBot):
 
         else: 
             err = str(error)
+            await self.exceptions.add_error(error=error, ctx=ctx, log_error=False)
 
             text = err[:300:] # A Large error text is not good to display.
 
@@ -183,8 +191,8 @@ class Xynus(_commands.AutoShardedBot):
 
 
     async def get_context(
-        self, message: _Message, *, cls: Type[DCT] | None = None
-    ) -> _Union[XynusContext, _commands.Context["Xynus"]]:
+        self, message: "_Message", *, cls: Type[DCT] | None = None
+    ) -> _Union[XynusContext, _commands.Context["XynusContext"]]:
         """|coro|
 
         Used to get the invocation context from the message.
@@ -203,6 +211,12 @@ class Xynus(_commands.AutoShardedBot):
     async def setup_hook(self) -> None:
         if not path.exists("./data"):
             _makedirs("./data")
+        
+        self.session = ClientSession()
+        
+        self.exceptions: XynusExceptionManager = XynusExceptionManager(self)
+
+
         try:
             self.pool: Connection = await connect(
                 dsn=settings.DSN,
@@ -245,7 +259,7 @@ class Xynus(_commands.AutoShardedBot):
     def set_user_view(
             self,
             user_id: int,
-            view: _View
+            view: "_View"
     ) -> None:
         
         self.views[user_id] = view

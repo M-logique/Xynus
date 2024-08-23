@@ -8,7 +8,7 @@ from discord.ext import commands
 
 from bot.templates.cogs import XynusCog
 from bot.templates.embeds import SimpleEmbed
-from bot.templates.views import YesOrNoView
+from bot.templates.views import ConfirmationView
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker
 

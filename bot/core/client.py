@@ -1,11 +1,13 @@
+from datetime import datetime as _datetime
 from os import makedirs as _makedirs
 from os import path
 from typing import TYPE_CHECKING
-from typing import Optional as _Optional
 from typing import Dict as _Dict
+from typing import Optional as _Optional
 from typing import Tuple, Type, TypeVar
 from typing import Union as _Union
 
+from aiohttp import ClientSession
 from asyncpg import Connection, connect
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
@@ -26,9 +28,6 @@ from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
 from .logger import Logger as _Logger
 from .settings import settings
-from datetime import datetime as _datetime
-from aiohttp import ClientSession
-
 
 if TYPE_CHECKING:
 

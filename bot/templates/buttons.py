@@ -1,21 +1,22 @@
+from typing import TYPE_CHECKING
 from typing import Any as _Any
+from typing import Optional, Type, Union
 
 from discord import ButtonStyle as _ButtonStyle
+from discord import DiscordException, Emoji
 from discord import Forbidden as _Forbidden
 from discord import Interaction as _Interaction
 from discord import NotFound as _NotFound
+from discord import PartialEmoji
 from discord.ui import Button as _Button
 
-from discord import DiscordException, Emoji, PartialEmoji
 from ..utils.config import Emojis
 from ..utils.functions import disable_all_items as _disable_all_items
-from typing import Optional, Union, Type, TYPE_CHECKING
-
 
 if TYPE_CHECKING:
 
-    from .views import EmbedEditor
     from .modals import EmbedBaseModal
+    from .views import EmbedEditor
 
 emojis = Emojis()
 

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from re import compile, escape
-from typing import Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 from discord import (AllowedMentions, Button, Interaction, Member, Message,
                      NotFound, User, app_commands)
@@ -8,9 +8,12 @@ from discord.ext import commands
 
 from bot.templates.cogs import XynusCog
 from bot.templates.embeds import SimpleEmbed
-from bot.templates.views import ConfirmationView
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker
+
+if TYPE_CHECKING:
+
+    from bot.templates.context import XynusContext
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -34,7 +37,7 @@ class Moderation(XynusCog):
     @commands.has_permissions(ban_members=True)
     async def ban(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         users: commands.Greedy[User],
         delete_days: Optional[int] = 7,
         *,
@@ -47,13 +50,24 @@ class Moderation(XynusCog):
         users = [*filter(lambda m: not m.id in members or ((ctx.guild.get_member(m.id).top_role < ctx.author.top_role and m.id != ctx.guild.owner_id) or ctx.guild.owner_id == ctx.author.id ), users)]
 
         reason = f"By {ctx.author.id}: " + reason
+        
 
-        async def yes_button(
-                interaction: Interaction,
-                button: Button
-        ) -> None:
-            await interaction.response.edit_message()
-            await interaction.delete_original_response()
+
+
+        
+        if not users:
+            return await ctx.reply("Did not find any user that you can ban.")
+    
+
+        th = "this" if len(users) == 1 else "these"
+        s = "" if len(users) == 1 else "s"
+
+        
+        confirm = await ctx.confirm(
+            f"Are you sure that you want to ban {th} {len(users)} user{s}?"
+        )
+
+        if confirm is True:
             success = []
             failed = []
             for user in users:
@@ -70,53 +84,21 @@ class Moderation(XynusCog):
             else:
                 and_more = lambda users: f"and {len(users) - 5} more" if len(users) > 5 else ""
                 get_names = lambda users: [i.name for i in users]
-                failed_to_ban = f"\n{crossmark} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != [] else ""
-
+                failed_to_ban = f"\n{crossmark} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != success else ""
+                banned = f"{checkmark} | Banned {', '.join(get_names(success)[:5:])} {and_more(success)}" if success else ""
 
                 embed = SimpleEmbed(
                     self.client,
-                    description=f"{checkmark} | Banned {', '.join(get_names(success)[:5:])} {and_more(success)}{failed_to_ban}"
+                    description=f"{banned}{failed_to_ban}"
                 )
                 embed.set_footer(
                     text=f"Invoked by {ctx.author.display_name}",
                     icon_url=ctx.author.display_avatar
                 )
 
-                await interaction.channel.send(
+                await ctx.send(
                     embed=embed,   
                 )
-        
-
-        async def no_button(
-                interaction: Interaction,
-                button: Button
-        ):
-            await interaction.response.edit_message()
-            await interaction.delete_original_response()
-
-        
-        if len(users) == 0:
-            return await ctx.reply("Did not find any user that you can ban.")
-    
-
-        embed = SimpleEmbed(
-            self.client,
-            description=f"Are you sure that you want to ban these {len(users)} user(s)?"
-        )
-
-        embed.set_footer(
-            text=f"Invoked by {ctx.author.display_name}",
-            icon_url=ctx.author.display_avatar
-        )
-
-        await ctx.reply(
-            embed=embed,
-            view=YesOrNoView(
-                function_to_call_after_yes=yes_button,
-                function_to_call_after_no=no_button,
-                author=ctx.author
-            )
-        )
     
     @commands.hybrid_command(
         name="unban", 
@@ -127,7 +109,7 @@ class Moderation(XynusCog):
     @commands.has_permissions(ban_members=True)
     async def unban(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         users: commands.Greedy[User],
         *,
         reason: Optional[str] = "No reason provided"
@@ -137,14 +119,24 @@ class Moderation(XynusCog):
         bans = [banned.user.id async for banned in ctx.guild.bans()]
         users = [*filter(lambda m: m.id in bans, users)]
 
-        reason = f"By {ctx.author.id}: " + reason
+        reason = f"[{reason}] - {ctx.author}"
 
-        async def yes_button(
-                interaction: Interaction,
-                button: Button
-        ) -> None:
-            await interaction.response.edit_message()
-            await interaction.delete_original_response()
+
+
+        
+        if not users:
+            return await ctx.reply("Did not find any user that you can unban.")
+    
+
+        th = "this" if len(users) == 1 else "these"
+        s = "" if len(users) == 1 else "s"
+
+        
+        confirm = await ctx.confirm(
+            f"Are you sure that you want to unban {th} {len(users)} user{s}?"
+        )
+
+        if confirm is True:
             success = []
             failed = []
             for user in users:
@@ -160,54 +152,21 @@ class Moderation(XynusCog):
             else:
                 and_more = lambda users: f"and {len(users) - 5} more" if len(users) > 5 else ""
                 get_names = lambda users: [i.name for i in users]
-                failed_to_ban = f"\n{crossmark} | Failed to unban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != [] else ""
-
+                failed_to_unban = f"\n{crossmark} | Failed to unban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed else ""
+                unbanned = f"{checkmark} | Unbanned {', '.join(get_names(success)[:5:])} {and_more(success)}" if success else ""
 
                 embed = SimpleEmbed(
                     self.client,
-                    description=f"{checkmark} | Unbanned {', '.join(get_names(success)[:5:])} {and_more(success)}{failed_to_ban}"
+                    description=f"{unbanned}{failed_to_unban}"
                 )
-
                 embed.set_footer(
                     text=f"Invoked by {ctx.author.display_name}",
                     icon_url=ctx.author.display_avatar
                 )
 
-                await interaction.channel.send(
+                await ctx.send(
                     embed=embed,   
                 )
-        
-
-        async def no_button(
-                interaction: Interaction,
-                button: Button
-        ):
-            await interaction.response.edit_message()
-            await interaction.delete_original_response()
-
-        
-        if len(users) == 0:
-            return await ctx.reply("Did not find any user that you can unban.")
-    
-
-        embed = SimpleEmbed(
-            self.client,
-            description=f"Are you sure that you want to unban these {len(users)} user(s)?"
-        )
-
-        embed.set_footer(
-            text=f"Invoked by {ctx.author.display_name}",
-            icon_url=ctx.author.display_avatar
-        )
-
-        await ctx.reply(
-            embed=embed,
-            view=YesOrNoView(
-                function_to_call_after_yes=yes_button,
-                function_to_call_after_no=no_button,
-                author=ctx.author
-            )
-        )
     
     
     
@@ -227,7 +186,7 @@ class Moderation(XynusCog):
     @commands.cooldown(1, 5, commands.BucketType.member)
     async def setnick(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         member: Member,
         *,
         nickname: Optional[str] = None
@@ -283,7 +242,7 @@ class Moderation(XynusCog):
     @commands.cooldown(1, 10, commands.BucketType.member)
     async def purge(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         amount: Optional[int] = 100,
     ):
 
@@ -315,7 +274,7 @@ class Moderation(XynusCog):
     )
     async def purge_until(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         message_id: str,
     ):
         await ctx.defer()
@@ -350,7 +309,7 @@ class Moderation(XynusCog):
     )
     async def purge_bots(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         amount: Optional[int] = 100,
     ):
         await ctx.defer()
@@ -379,7 +338,7 @@ class Moderation(XynusCog):
     )
     async def purge_commands(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         *,
         prefix: str,
     ):
@@ -406,7 +365,7 @@ class Moderation(XynusCog):
     )
     async def purge_user(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         user: User,
         amount: Optional[int] = 300
     ):
@@ -437,7 +396,7 @@ class Moderation(XynusCog):
     )
     async def purge_embeds(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         amount: Optional[int] = 100,
         only_bots: Optional[bool] = True
     ):
@@ -461,7 +420,7 @@ class Moderation(XynusCog):
     async def _purge(
             self,
             messages: Sequence[Message],
-            ctx: commands.Context
+            ctx: "XynusContext"
     ):
         
 

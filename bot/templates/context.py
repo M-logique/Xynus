@@ -1,16 +1,19 @@
-from typing import (Any, Callable, Dict, List, Optional, Sequence, Union,
-                    overload)
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
+                    Sequence, Union, overload)
 
 from discord import (AllowedMentions, Embed, File, Forbidden, Interaction,
                      Message, MessageReference, PartialMessage)
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands.context import MISSING
 from discord.ext.commands.view import StringView
 from discord.ui import View
 from discord.utils import cached_property
 
-from .views import ViewWithDeleteButton
+from .embeds import ConfirmationEmbed
+from .views import ConfirmationView, ViewWithDeleteButton
+
+if TYPE_CHECKING:
+    from ..core import Xynus
 
 # A large amount of code + ideas have been transferred from the HideoutManager project
 #     https://github.com/DuckBot-Discord/duck-hideout-manager-bot/blob/main/utils/bot_bases/context.py
@@ -32,8 +35,10 @@ class XynusContext(commands.Context):
             current_argument: str | None = None, 
             interaction: Interaction | None = None
     ):
+    
+        self.bot: "Xynus" = bot
+        self.client: "Xynus" = bot
         super().__init__(message=message, bot=bot, view=view, args=args, kwargs=kwargs, prefix=prefix, command=command, invoked_with=invoked_with, invoked_parents=invoked_parents, invoked_subcommand=invoked_subcommand, subcommand_passed=subcommand_passed, command_failed=command_failed, current_parameter=current_parameter, current_argument=current_argument, interaction=interaction)
-
 
 
     @overload
@@ -162,7 +167,29 @@ class XynusContext(commands.Context):
         except Forbidden as e:
             self.bot.logger.warn(f"Whoops! Failed to reply the user {self.author.id} in channel {self.channel.id}: {e}")
             
-    
+    async def confirm(
+        self,
+        text: str | None = None,
+        /,
+        *,
+        owner: Optional[int] = None,
+        timeout: int = 30,
+        delete_after: bool = True,
+    ):
+        
+        embed = ConfirmationEmbed(text, timeout)
+        view = ConfirmationView(ctx=self, owner_id=owner, timeout=timeout)
+        try:
+            view.message = await self.send(
+                embed=embed,
+                view=view
+            )
+            await view.wait()
+            return view.value
+        
+        except HTTPException:
+            return None
+            
 
     @cached_property
     def reference(self) -> Message | None:

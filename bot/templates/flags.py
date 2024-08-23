@@ -1,7 +1,9 @@
-from discord.ext import commands
-from ..utils.functions import verify_link, strip_codeblock
-from typing import Annotated, List, TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated, List
+
 from discord import Color
+from discord.ext import commands
+
+from ..utils.functions import strip_codeblock, verify_link
 
 if TYPE_CHECKING:
     from .context import XynusContext

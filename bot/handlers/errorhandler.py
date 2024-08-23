@@ -178,7 +178,8 @@ class XynusExceptionManager:
         ctx: Optional[:class:`XynusContext`]
             The invocation context of the error, if any.
         """
-        log.info('Adding error "%s" to log.', str(error))
+        if log_error:
+            log.info('Adding error "%s" to log.', str(error))
 
         packet: XynusTraceback = {'time': (ctx and ctx.created_at) or utils.utcnow(), 'exception': error}
 

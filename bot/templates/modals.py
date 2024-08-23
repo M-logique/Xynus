@@ -1,15 +1,13 @@
+from re import compile, fullmatch
 from time import time
+from typing import TYPE_CHECKING, Self
 
-from discord import Interaction, TextStyle, User, Color
+from discord import Color, Embed, Interaction, TextStyle, User
 from discord.ui import Modal, TextInput, View
 
 from ..utils.config import Emojis
-
-from typing import TYPE_CHECKING, Self
-from discord import Embed
-from .exceptions import InvalidModalField
-from re import compile, fullmatch
 from ..utils.functions import to_boolean
+from .exceptions import InvalidModalField
 
 if TYPE_CHECKING:
     from .views import EmbedEditor

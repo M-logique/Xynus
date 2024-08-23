@@ -1,34 +1,27 @@
 from asyncio import sleep
+from copy import deepcopy
 from re import search as _search
 from string import Template
 from types import FunctionType
-from typing import Any, Callable, Dict, Optional, Sequence, Union
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Optional, Self,
+                    Sequence, Union)
 
 from aiohttp import ClientSession
 from asyncpg import Connection
-from discord import (Button, ButtonStyle, ChannelType, Interaction, Object,
-                     PermissionOverwrite, User)
+from discord import (Button, ButtonStyle, ChannelType, Embed, Interaction,
+                     Member, Message, NotFound, Object, PermissionOverwrite,
+                     User)
+from discord.abc import Messageable
 from discord.components import SelectOption
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
+from discord.ui import Button as Btn
+from discord.ui import ChannelSelect
+from discord.ui import Select
 from discord.ui import Select as _Select
 from discord.ui import View as _View
-from discord.ui import button
+from discord.ui import button, select
 from discord.ui.item import Item
-from copy import deepcopy
-from discord.ui import Select, select, ChannelSelect, Button as Btn
-
-from discord.abc import Messageable
-
-from discord import Embed
-from discord import (
-    Member,
-    Message,
-    NotFound
-)
-from .buttons import EditWithModalButton, DeleteButton
-
-from .modals import EditAuthorModal, EditEmbedModal, EditFooterModal, EditFieldModal, AddFieldModal
 
 from bot import __name__ as name
 from bot import __version__ as version
@@ -41,16 +34,18 @@ from ..utils.functions import decrypt
 from ..utils.functions import disable_all_items as _disable_all_items
 from ..utils.functions import encrypt
 from ..utils.functions import get_all_commands as _get_all_commands
+from .buttons import DeleteButton, EditWithModalButton
 from .cooldowns import ticket_edit_cooldown
 from .embeds import CommandsEmbed, DynamicHelpEmbed
-from typing import TYPE_CHECKING, Self
 from .exceptions import CustomOnCooldownException
-
+from .modals import (AddFieldModal, EditAuthorModal, EditEmbedModal,
+                     EditFieldModal, EditFooterModal)
 
 if TYPE_CHECKING:
 
     from ..core import Xynus
     from .cogs import XynusCog
+    from .context import XynusContext
 
 
 emojis = Emojis()
@@ -502,20 +497,23 @@ class ConfirmationView(_View):
 
     def __init__(
             self,
-            coro_to_call_after_yes: FunctionType,
-            coro_to_call_after_no: FunctionType,
-            author: User
+            ctx: "XynusContext", 
+            *, 
+            owner_id: Optional[int] = None, 
+            timeout: int = 60
     ):
-
-
-        self.author = author
+        super().__init__(timeout=timeout)
+        self.owner_id = owner_id or ctx.author.id
+        self.ctx = ctx
+        self.value = None
+        self.message: Message | None = None
 
 
         super().__init__(timeout=120)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         
-        if self.author.id == interaction.user.id:
+        if self.owner_id == interaction.user.id:
             return True
         
         await interaction.response.edit_message()
@@ -526,31 +524,49 @@ class ConfirmationView(_View):
         style=ButtonStyle.green,
         custom_id="yes",
     )
-    async def yes_button(
+    async def yes(
         self,
         interaction: Interaction,
         button: Button
     ): 
-        return await self.ftcay(
-            interaction,
-            button
-        )
+        await interaction.response.defer()
+        self.value = True
+
+        await interaction.delete_original_response()
+        self.stop()
+    
+        
     
     @button(
         label="No",
         style=ButtonStyle.red,
         custom_id="no" 
     )
-    async def no_button(
+    async def no(
         self,
         interaction: Interaction,
         button: Button
     ):
-        return await self.ftcan(
-            interaction,
-            button
+        await interaction.response.edit_message(
+            view=None,
+            embed=Embed(
+                color=self.ctx.bot.color,
+                description="**Action cancelled!**"
+            )
         )
+        self.value = False
+        self.stop()
     
+    async def on_timeout(self) -> None:
+        self.stop()
+        if self.message:
+            return await self.message.edit(
+                view=None,
+                embed=Embed(
+                    description="**Action cancelled (Timeout)**",
+                    color=self.ctx.bot.color
+                )
+            )
 
 
 class WhisperView(_View):

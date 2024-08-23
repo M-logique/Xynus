@@ -169,4 +169,23 @@ class CommandInfoEmbed(SimpleEmbed):
             description = description,
             **kwrgs
         )
-        
+
+
+class ConfirmationEmbed(_Embed):
+
+    def __init__(
+            self,
+            text: str,
+            timeout: int,
+            /
+    ):
+        super().__init__(
+            description=text,
+        )
+
+        self.set_footer(
+            text=(
+                f'Click on either "Yea" or "No" to confirm. You have {timeout} second'
+                's' if timeout > 1 else ''
+            )
+        )

@@ -31,5 +31,3 @@ class Logger(_logging.Logger):
         self.addHandler(self.handler)
 
         self.info(f'{self.name} logger initialized.')
-
-Logger("sex.sex")

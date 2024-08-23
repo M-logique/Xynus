@@ -30,4 +30,6 @@ class Settings(BaseSettings):
     PASSWORD: Optional[str] = None
 
 
+    ERROR_WEBHOOK_URL: str
+
 settings = Settings()

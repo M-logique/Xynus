@@ -1,8 +1,8 @@
 from time import time
-from typing import Optional
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from aiohttp import ClientSession
-from discord import Interaction, Member, Role, app_commands, utils
+from discord import Embed, Interaction, Member, Role, app_commands, utils
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -11,15 +11,19 @@ from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import XynusCog
 from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed
+from bot.templates.flags import EmbedFlags
 from bot.templates.modals import WhisperModal
-from bot.templates.views import (DynamicHelpView, EmojisView, Pagination,
-                                 WhisperModalView, WhisperView)
+from bot.templates.views import (DynamicHelpView, EmbedEditor, EmojisView,
+                                 Pagination, WhisperModalView, WhisperView)
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings)
+
+if TYPE_CHECKING:
+    from bot.templates.context import XynusContext
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -788,7 +792,63 @@ class Tools(XynusCog):
             content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nYou can only use the button until <t:{expiry_time}:t>.",
             view=view
         )
-            
+
+    @commands.command()
+    async def embed(
+        self,
+        ctx: "XynusContext",
+        *,
+        flags: Union[Literal['--help'], EmbedFlags, None],
+    ):
+        """Sends an embed using flags. An interactive embed maker is also available if you don't pass any flags.
+
+        Parameters
+        ----------
+        flags: EmbedFlags
+            The flags to use. Please see ``embed --help`` for flag info.
+        """
+        if flags is None:
+            view = EmbedEditor(ctx.author, self)  # type: ignore
+
+            if ctx.reference and ctx.reference.embeds:
+                view.embed = Embed.from_dict(ctx.reference.embeds[0].to_dict())
+                await view.update_buttons()
+            view.message = await ctx.send(embed=view.current_embed, view=view)
+            return
+
+        if flags == '--help':
+            return await ctx.send("کیر میخوام")
+
+        embed = Embed(title=flags.title, description=flags.description, colour=flags.color)
+
+        if flags.field and len(flags.field) > 25:
+            raise commands.BadArgument('You can only have up to 25 fields!')
+
+        for f in flags.field or []:
+            embed.add_field(name=f.name, value=f.value, inline=f.inline)
+
+        if flags.thumbnail:
+            embed.set_thumbnail(url=flags.thumbnail)
+
+        if flags.image:
+            embed.set_image(url=flags.image)
+
+        if flags.author:
+            embed.set_author(name=flags.author.name, url=flags.author.url, icon_url=flags.author.icon)
+
+        if flags.footer:
+            embed.set_footer(text=flags.footer.text, icon_url=flags.footer.icon or None)
+
+        if not embed:
+            raise commands.BadArgument('You must pass at least one of the necessary (marked with `*`) flags!')
+        if len(embed) > 6000:
+            raise commands.BadArgument('The embed is too big! (too much text!) Max length is 6000 characters.')
+        try:
+            await ctx.channel.send(embed=embed)
+        except HTTPException as e:
+            raise commands.BadArgument(f'Failed to send the embed! {type(e).__name__}: {e.text}`')
+        except Exception as e:
+            raise commands.BadArgument(f'An unexpected error occurred: {type(e).__name__}: {e}') 
 
 async def setup(c): 
     c.remove_command("help")

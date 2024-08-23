@@ -1,16 +1,16 @@
 from functools import wraps
 from types import FunctionType
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from discord.ext import commands
 
 from ..utils.functions import disable_all_items
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from wavelink import Player
-    from ..core import Xynus
     from discord import Interaction
+    from wavelink import Player
+
+    from ..core import Xynus
     from .context import XynusContext
 
 

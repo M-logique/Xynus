@@ -1,8 +1,8 @@
 from discord import AllowedMentions, Intents
 
-from bot.core.client import Client
+from bot.core.client import Xynus
 
-client = Client(
+client = Xynus(
     intents=Intents.all(),
     allowed_mentions=AllowedMentions(
         replied_user=False

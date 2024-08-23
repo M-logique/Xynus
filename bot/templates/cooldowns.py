@@ -5,7 +5,9 @@ from typing import Union
 from discord import Interaction
 from discord.ext.commands import Context, CooldownMapping
 from discord.ext.commands.cooldowns import BucketType
+
 from .exceptions import CustomOnCooldownException
+
 
 class CooldownMapingCache:
 

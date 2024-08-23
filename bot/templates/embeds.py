@@ -22,9 +22,10 @@ class SimpleEmbed(_Embed):
             client: _Optional[_commands.Bot] = None,
             **kwrgs
     ):
+        if client:
+            kwrgs["color"] = client.color
         super().__init__(
             timestamp=_datetime.now(),
-            color=client.color if client else None
             **kwrgs
         )
 

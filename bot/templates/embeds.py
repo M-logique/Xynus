@@ -9,11 +9,9 @@ from discord import Embed as _Embed
 from discord import Interaction as _Interaction
 from discord.ext import commands as _commands
 
-from ..core import _settings
-
 from ..utils.functions import format_command_params, split_camel_case
 
-MAIN_COLOR = _Color.from_rgb(*_settings.MAIN_COLOR)
+
 
 class SimpleEmbed(_Embed):
     """
@@ -26,7 +24,7 @@ class SimpleEmbed(_Embed):
     ):
         super().__init__(
             timestamp=_datetime.now(),
-            color=MAIN_COLOR
+            color=client.color if client else None
             **kwrgs
         )
 

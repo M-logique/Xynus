@@ -68,7 +68,7 @@ class Xynus(_commands.AutoShardedBot):
 
         self.views: _Dict[_View] = dict()
 
-        self.error_webhook_url: _Optional[str] = "https://discord.com/api/webhooks/1276562791314096201/AGGHMaEHYdPRkJ8yYH-Jh-J6vZtosFuyUr6FUPEhr1SjfCrr20ypWCqpnmNOL4mIkcZt"
+        self.error_webhook_url: _Optional[str] = settings.ERROR_WEBHOOK_URL
         self._start_time: _Optional[_datetime] = None
         
         self.context_class: _Union[XynusContext, _commands.Context] = XynusContext

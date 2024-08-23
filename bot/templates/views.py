@@ -756,6 +756,23 @@ class FieldSelectorView(BaseView):
         super().__init__(timeout=300)
         self.update_options()
 
+    def update_options(self):
+        self.pick_field.options = []
+        for i, field in enumerate(self.parent.embed.fields):
+            self.pick_field.add_option(label=f"{i + 1}) {(field.name or '')[0:95]}", value=str(i))
+
+    @select(placeholder='Select a field to delete.')
+    async def pick_field(self, interaction: Interaction, select: Select):
+        await self.actual_logic(interaction, select)
+
+    @button(label='Go back')
+    async def cancel(self, interaction: Interaction, button: Button):
+        await interaction.response.edit_message(view=self.parent)
+        self.stop()
+
+    async def actual_logic(self, interaction: Interaction, select: Select) -> None:
+        raise NotImplementedError('Child classes must overwrite this method.')
+
 class DeleteFieldWithSelect(FieldSelectorView):
     async def actual_logic(self, interaction: Interaction, select: Select[Self]):
         index = int(select.values[0])

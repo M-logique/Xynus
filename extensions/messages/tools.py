@@ -793,20 +793,19 @@ class Tools(XynusCog):
             view=view
         )
 
-    @commands.command()
+    # Embed builder from HideoutManager
+    # https://github.com/DuckBot-Discord/duck-hideout-manager-bot/
+
+    @commands.command(
+            description="Sends an embed using flags. An interactive embed maker is also available if you don't pass any flags."
+    )
     async def embed(
         self,
         ctx: "XynusContext",
         *,
-        flags: Union[Literal['--help'], EmbedFlags, None],
+        flags: Union[EmbedFlags, None],
     ):
-        """Sends an embed using flags. An interactive embed maker is also available if you don't pass any flags.
-
-        Parameters
-        ----------
-        flags: EmbedFlags
-            The flags to use. Please see ``embed --help`` for flag info.
-        """
+        
         if flags is None:
             view = EmbedEditor(ctx.author, self)  # type: ignore
 
@@ -816,8 +815,6 @@ class Tools(XynusCog):
             view.message = await ctx.send(embed=view.current_embed, view=view)
             return
 
-        if flags == '--help':
-            return await ctx.send("کیر میخوام")
 
         embed = Embed(title=flags.title, description=flags.description, colour=flags.color)
 

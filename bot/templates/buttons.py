@@ -49,7 +49,7 @@ class DeleteButton(_Button):
     async def callback(self, interaction: _Interaction) -> _Any:
 
 
-        await interaction.response.edit_message()
+        await interaction.response.defer()
 
         message = interaction.message
 

@@ -64,7 +64,7 @@ class CommandsEmbed(_Embed):
             total_commands: int,
             **kwrgs
     ):
-        
+        from ..core import _settings
         base = "```diff\n+ {}\n```\n**Commands**: {}\n".format(
             title,
             total_commands
@@ -86,6 +86,7 @@ class CommandsEmbed(_Embed):
         super().__init__(
             timestamp=_datetime.now(),
             description=base,
+            color=_Color.from_rgb(*_settings.MAIN_COLOR),
             **kwrgs
         )
 
@@ -174,6 +175,7 @@ class CommandInfoEmbed(SimpleEmbed):
 
         super().__init__(
             description = description,
+            client=client,
             **kwrgs
         )
 

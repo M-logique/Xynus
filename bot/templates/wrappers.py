@@ -8,7 +8,7 @@ from ..utils.functions import disable_all_items
 
 if TYPE_CHECKING:
     from discord import Interaction
-    from wavelink import Player
+    
 
     from ..core import Xynus
     from .context import XynusContext
@@ -23,9 +23,10 @@ def check_views(
     """
     @wraps(coro)
     async def wrapper(*args, **kwargs):
+        
 
-        ctx: XynusContext = args[1]
-        client: Xynus = args[0].client
+        ctx: "XynusContext" = args[1]
+        client: "Xynus" = args[0].client
         user_id = ctx.author.id
 
         prev_view = client.views.get(user_id)
@@ -51,8 +52,8 @@ def check_views_interaction(
     async def wrapper(*args, **kwargs):
         
 
-        interaction: Interaction = args[1]
-        client: Xynus = args[0].client
+        interaction: "Interaction" = args[1]
+        client: "Xynus" = args[0].client
         user_id = interaction.user.id
 
         prev_view = client.views.get(user_id)
@@ -75,9 +76,9 @@ def check_voice_client(
     """
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
+        from wavelink import Player
 
-
-        ctx: XynusContext = args[1]
+        ctx: "XynusContext" = args[1]
 
         await ctx.defer()
 
@@ -123,8 +124,9 @@ def check_for_player(
     """
     @wraps(coro)
     async def wrapper(*args, **kwrgs):
+        from wavelink import Player
 
-        ctx: XynusContext = args[1]
+        ctx: "XynusContext" = args[1]
 
         await ctx.defer()
 

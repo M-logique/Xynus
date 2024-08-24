@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from re import compile, escape
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from discord import (AllowedMentions, Button, Interaction, Member, Message,
+from discord import (AllowedMentions, Member, Message,
                      NotFound, User, app_commands)
 from discord.ext import commands
 
@@ -50,9 +50,6 @@ class Moderation(XynusCog):
         users = [*filter(lambda m: not m.id in members or ((ctx.guild.get_member(m.id).top_role < ctx.author.top_role and m.id != ctx.guild.owner_id) or ctx.guild.owner_id == ctx.author.id ), users)]
 
         reason = f"By {ctx.author.id}: " + reason
-        
-
-
 
         
         if not users:

@@ -11,6 +11,8 @@ from discord.utils import cached_property
 
 from .embeds import ConfirmationEmbed
 from .views import ConfirmationView, ViewWithDeleteButton
+from discord.ext.commands.context import MISSING
+
 
 if TYPE_CHECKING:
     from ..core import Xynus
@@ -22,18 +24,23 @@ if TYPE_CHECKING:
 class XynusContext(commands.Context):
 
     def __init__(
-            self, *, 
-            message: Message, bot: Any, 
-            view: StringView, args: List[Any] = ..., 
-            kwargs: Dict[str, Any] = ..., prefix: str | None = None, 
-            command: commands.Command[Any, Callable[..., Any], Any] | None = None, 
-            invoked_with: str | None = None, 
-            invoked_parents: List[str] = ..., 
-            invoked_subcommand: commands.Command[Any, Callable[..., Any], Any] | None = None, 
-            subcommand_passed: str | None = None, command_failed: bool = False, 
-            current_parameter: commands.Parameter | None = None, 
-            current_argument: str | None = None, 
-            interaction: Interaction | None = None
+        self,
+        *,
+        message: Message,
+        bot: "Xynus",
+        view: StringView,
+        args: List[Any] = MISSING,
+        kwargs: Dict[str, Any] = MISSING,
+        prefix: Optional[str] = None,
+        command: Optional[commands.Command[Any, ..., Any]] = None,
+        invoked_with: Optional[str] = None,
+        invoked_parents: List[str] = MISSING,
+        invoked_subcommand: Optional[commands.Command[Any, ..., Any]] = None,
+        subcommand_passed: Optional[str] = None,
+        command_failed: bool = False,
+        current_parameter: Optional[commands.Parameter] = None,
+        current_argument: Optional[str] = None,
+        interaction: Optional[Interaction] = None,
     ):
     
         self.bot: "Xynus" = bot
@@ -98,74 +105,6 @@ class XynusContext(commands.Context):
     
         except (Forbidden, HTTPException):
             pass # type: ignore
-
-
-    @overload
-    async def reply(  # type: ignore
-        self,
-        content: Optional[str] = None,
-        *,
-        tts: bool = False,
-        embed: Optional[Embed] = None,
-        embeds: Optional[Sequence[Embed]] = None,
-        file: Optional[File] = None,
-        files: Optional[Sequence[File]] = None,
-        delete_after: Optional[float] = None,
-        nonce: Optional[Union[str, int]] = None,
-        allowed_mentions: Optional[AllowedMentions] = None,
-        reference: Optional[Union[Message, MessageReference, PartialMessage]] = None,
-        mention_author: Optional[bool] = None,
-        view: Optional[View] = None,
-        suppress_embeds: bool = False,
-        ephemeral: bool = False,
-    ) -> Message:
-        ...
-
-    async def reply(self, content: str | None = None, **kwargs: Any) -> Message:
-        """|coro|
-
-        A shortcut method to send to reply to the ~discord.Message referenced by this context..
-
-        View :meth:`~discord.ext.commands.Context.send` for more information of parameters.
-
-        Returns
-        -------
-        :class:`~discord.Message`
-            The message that was created.
-        """
-        if kwargs.get('embed') and kwargs.get('embeds'):
-            raise ValueError('Cannot send both embed and embeds')
-
-        embeds: Sequence[Embed] = kwargs.pop('embeds', []) or ([kwargs.pop('embed')] if kwargs.get('embed', None) else [])
-        if embeds:
-            for embed in embeds:
-                if embed.color is None:
-                    # Made this the bot's vanity colour, although we'll
-                    # be keeping self.color for other stuff like userinfo
-                    embed.color = self.bot.color
-
-            kwargs['embeds'] = embeds
-
-        if kwargs.get('delete_button'):
-            if kwargs.get('view'):
-                raise TypeError("'view' and 'delete_button' cannot be passed together.")
-
-            kwargs["view"] = ViewWithDeleteButton(self.author)
-        
-        try:
-            return await super().reply(content, **kwargs)
-    
-        except HTTPException as e:
-
-            if e.response == 400: # ctx.message deleted before repling
-
-                # Sending message instead of repling it
-                return await self.send(content, **kwargs)
-        
-            self.bot.logger.warn(f"Whoops! Failed to reply the user {self.author.id} in channel {self.channel.id}: {e}")
-
-        except Forbidden as e:
-            self.bot.logger.warn(f"Whoops! Failed to reply the user {self.author.id} in channel {self.channel.id}: {e}")
             
     async def confirm(
         self,

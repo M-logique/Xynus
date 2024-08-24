@@ -20,13 +20,17 @@ class SimpleEmbed(_Embed):
     def __init__(
             self,
             client: _Optional[_commands.Bot] = None,
-            **kwrgs
+            **kwargs
     ):
-        if client:
-            kwrgs["color"] = client.color
+        
+        from ..core import _settings
+
+
+
         super().__init__(
             timestamp=_datetime.now(),
-            **kwrgs
+            color=_Color.from_rgb(*_settings.MAIN_COLOR),
+            **kwargs
         )
 
         if client:

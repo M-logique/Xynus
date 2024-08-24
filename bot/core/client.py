@@ -26,8 +26,11 @@ from ..templates.context import XynusContext
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import KVDatabase
 from ..utils.functions import list_all_dirs, search_directory
-from .logger import Logger as _Logger
+from .logger import XynusLogger as _Logger
 from .settings import settings
+
+from logging import getLogger
+from time import time
 
 if TYPE_CHECKING:
 
@@ -64,7 +67,7 @@ class Xynus(_commands.AutoShardedBot):
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
         
-        self.logger = _Logger(name)
+        self.logger = _Logger("xynus.main")
 
         self.views: _Dict[_View] = dict()
         
@@ -97,21 +100,24 @@ class Xynus(_commands.AutoShardedBot):
             status=Status.idle
         )
 
+        log = getLogger("xynus.ext")
 
-        if self.cogs != {}: return self.logger.warn("Skipped loading extensions: Reconnecting")
+        if self.cogs != {}: return log.warn("Skipped loading extensions: Reconnecting")
 
-        self.logger.success(f"Discord Client Logged in as {self.user.name}")
+        self.logger.info(f"Discord Client Logged in as {self.user.name}")
 
         # Extension loading stuff
 
-        self.logger.info("Started loading Extensions")
+        log.info("Started loading Extensions")
     
         for dir in list_all_dirs("./extensions"):
 
             await self.load_extensions(dir)
 
 
-        self.logger.info("Finished loading Extensions")
+        log.info("Finished loading Extensions")
+
+
         try:
             synced = await self.tree.sync()
             self.logger.info(f"Synced {len(synced)} command(s).")
@@ -167,14 +173,15 @@ class Xynus(_commands.AutoShardedBot):
 
     async def load_extensions(self, path: str) -> None:
         for extension in search_directory(path):
-            try:
 
+            log = getLogger("xynus.ext")
+
+            try:
                 await self.load_extension(extension)
-                self.logger.success("loaded {}".format(extension))
+                log.info("loaded {}".format(extension))
                 
             except Exception as err:
-
-                self.logger.error("There was an error loading {}, Error: {}".format(extension, err))
+                log.error("There was an error loading {}, Error: {}".format(extension, err))
 
     def run(self):
 
@@ -218,6 +225,7 @@ class Xynus(_commands.AutoShardedBot):
 
 
         try:
+            start_time = time()
             self.pool: Connection = await connect(
                 dsn=settings.DSN,
                 host=settings.HOST,
@@ -227,13 +235,15 @@ class Xynus(_commands.AutoShardedBot):
                 port=settings.PORT
             )
 
+            taked_time = round(time() - start_time , 3)
+
             self.db = KVDatabase(self.pool)
             await self.db._setup()
             
             setup_query = self._load_query("setup.sql")
             await self.pool.fetch(setup_query)
 
-            self.logger.success("Connected to the database.")
+            self.logger.info(f"Connected to the database in {taked_time}ms")
 
         except Exception as err:
 
@@ -243,18 +253,6 @@ class Xynus(_commands.AutoShardedBot):
 
         view_collection = PersistentViews(self)
         view_collection.add_views()
-
-        """|coro|
-
-        Used to get the invocation context from the message.
-
-        Parameters
-        ----------
-        message: :class:`~discord.Message`
-            The message to get the prefix of.
-        cls: Type[:class:`HideoutContext`]
-            The class to use for the context.
-        """
 
     def set_user_view(
             self,
@@ -271,16 +269,10 @@ class Xynus(_commands.AutoShardedBot):
     ) -> str:
         """Load an SQL query from a file.
 
-        Parameters:
-        name (str): The name of the SQL file containing the query.
-
-        Returns:
-        str: The contents of the SQL file as a string.
-
-        Raises:
-        FileNotFoundError: If the file specified by `path` does not exist.
-        IOError: If there is an error reading the file.
-    
+        Parameters
+        ----------
+        name :class:`str`:
+            The name of the SQL file containing the query.
         """
 
 

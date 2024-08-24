@@ -14,6 +14,8 @@ from bot.templates.wrappers import check_for_player, check_voice_client
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker
 
+from logging import getLogger
+
 emojis = Emojis()
 note = emojis.get("music_note")
 checkmark = emojis.get("checkmark")
@@ -53,8 +55,9 @@ LAVALINKS = [
 
 class Music(XynusCog):
 
+    log = getLogger("xynus.music")
     emoji = emojis.get("music_note")
-    cache = set()
+    cache = dict()
 
     # Listeners
     
@@ -63,7 +66,7 @@ class Music(XynusCog):
         self,
         node: NodeReadyEventPayload
     ):
-        self.client.logger.info(f"Node {node.node.identifier} is ready")
+        self.log.info(f"Node {node.node.identifier} is ready")
 
     @commands.Cog.listener()
     async def on_wavelink_track_start(self, payload: TrackStartEventPayload) -> None:

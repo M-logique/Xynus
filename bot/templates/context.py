@@ -15,8 +15,6 @@ from discord.ext.commands.context import MISSING
 from discord.sticker import GuildSticker, StickerItem
 from discord.poll import Poll
 from discord import NotFound
-from asyncio import sleep
-
 
 if TYPE_CHECKING:
     from ..core import Xynus

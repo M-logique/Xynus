@@ -2,7 +2,6 @@ from asyncio import sleep
 from copy import deepcopy
 from re import search as _search
 from string import Template
-from types import FunctionType
 from typing import (TYPE_CHECKING, Any, Callable, Dict, Optional, Self,
                     Sequence, Union)
 
@@ -39,7 +38,7 @@ from .cooldowns import ticket_edit_cooldown
 from .embeds import CommandsEmbed, DynamicHelpEmbed
 from .exceptions import CustomOnCooldownException
 from .modals import (AddFieldModal, EditAuthorModal, EditEmbedModal,
-                     EditFieldModal, EditFooterModal)
+                     EditFieldModal, EditFooterModal, LoadMessageModal)
 
 if TYPE_CHECKING:
 
@@ -822,6 +821,7 @@ class EmbedEditor(BaseView):
         if interaction.user == self.owner:
             return True
         await interaction.response.send_message('This is not your menu.', ephemeral=True)
+        return False
 
     def add_items(self):
         """This is done this way because if not, it would get too cluttered."""
@@ -840,6 +840,7 @@ class EmbedEditor(BaseView):
         # Row 3
         self.add_item(self.send)
         self.add_item(self.send_to)
+        self.add_item(self.load_message)
         self.add_item(self.help_page)
         # Row 4
         self.character_count: button = Btn(row=3, label='0/6,000 Characters', disabled=True)
@@ -952,7 +953,18 @@ class EmbedEditor(BaseView):
             )
         await interaction.response.edit_message(view=SendToView(parent=self))
 
-
+    @button(
+        label="Load Message", 
+        row=2,
+        style=ButtonStyle.gray
+    )
+    async def load_message(
+        self,
+        interaction: Interaction,
+        button: Button
+    ):
+        
+        await interaction.response.send_modal(LoadMessageModal(self))
 
     @button(label='Show Help Page', row=2, disabled=True)
     async def help_page(self, interaction: Interaction, button: button):
@@ -979,7 +991,7 @@ class FieldSelectorView(BaseView):
         for i, field in enumerate(self.parent.embed.fields):
             self.pick_field.add_option(label=f"{i + 1}) {(field.name or '')[0:95]}", value=str(i))
 
-    @select(placeholder='Select a field to delete.')
+    @select(placeholder='Select a field.')
     async def pick_field(self, interaction: Interaction, select: Select):
         await self.actual_logic(interaction, select)
 

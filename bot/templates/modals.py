@@ -8,7 +8,10 @@ from discord.ui import Modal, TextInput, View
 from ..utils.config import Emojis
 from ..utils.functions import to_boolean
 from .exceptions import InvalidModalField
+from discord import Message
+from re import match
 
+from discord import NotFound, HTTPException, Forbidden
 if TYPE_CHECKING:
     from .views import EmbedEditor
 
@@ -435,3 +438,62 @@ class AddFieldModal(EmbedBaseModal, title='Add a field'):
 
         if failed:
             raise InvalidModalField('\n'.join(failed))
+
+
+class LoadMessageModal(EmbedBaseModal, title="Loading embed from its url"):
+
+    url = TextInput(
+        label="Url of message",
+        placeholder="http(s)://discord.com/channels/.../.../...",
+        max_length=100,
+        required=True
+    )
+
+    def update_embed(self) -> None:
+        
+        msg: Message = self.loaded_message
+        self.parent_view.embed = msg.embeds[0]
+
+
+    async def on_submit(self, interaction: Interaction) -> None:
+
+        pattern = r"^https?://discord\.com/channels/(\d+)/(\d+)/(\d+)$"
+        matched = match(pattern, self.url.value)
+
+        original_message = interaction.message
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        if not matched:
+            return await interaction.edit_original_response(content="Invalid url provided")
+
+        
+        guild_id, channel_id, message_id = map(lambda _: int(_), matched.groups())
+
+
+        if not guild_id == interaction.guild_id:
+            return await interaction.edit_original_response(content="Invalid guild provided")
+        
+        channel = interaction.guild.get_channel(channel_id)
+
+        if not channel:
+            await interaction.edit_original_response(content="Didn't find the channel")
+        
+        try:
+            message = await channel.fetch_message(message_id)
+
+            if not message.embeds:
+                return await interaction.edit_original_response(content="Didn't find any embed in this message")
+            
+            self.loaded_message = message
+        
+        except (Forbidden, HTTPException, NotFound):
+            await interaction.edit_original_response(content="Failed to fetch the message")
+        
+
+        
+        self.update_embed()
+        await self.parent_view.update_buttons()
+
+
+        await original_message.edit(embed=self.parent_view.current_embed, view=self.parent_view)
+        await interaction.edit_original_response(content="Loaded!")

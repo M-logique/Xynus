@@ -425,9 +425,12 @@ class Moderation(XynusCog):
 
         total_messages = len(messages)
 
+        s = "" if total_messages == 1 else "s"
+
+
+
         if not await ctx.confirm(
-            f"Are you sure that you want to delete {total_messages} message"
-            "?" if total_messages == 1 else "s?",
+            f"Are you sure that you want to delete {total_messages} message{s}?",
             owner=ctx.author.id
         ):
             return

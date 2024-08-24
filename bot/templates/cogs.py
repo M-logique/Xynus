@@ -1,19 +1,30 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional, Self
 
 from discord import PartialEmoji
 from discord.ext import commands as _commands
 
 from ..core import Xynus as _Xynus
+from typing import Union
 
 if TYPE_CHECKING:
     from ..core import Xynus
 
+from discord.ui import Modal
+
 class XynusCog(_commands.Cog):
+
+    if TYPE_CHECKING:
+        emoji: str
+
 
     def __init__(self, client: _Xynus) -> None:
         self.client: "Xynus" = client
-        self.emoji: Optional[PartialEmoji] = None 
+
+
+    def __init_subclass__(cls, *, emoji: Optional[Union[str, PartialEmoji]] = None):
         
         # Since I'm organizing commands based on Cogs,
         # I need an emoji for the SelectOption in the HelpSelect,
         # which will be defined here.
+
+        cls.emoji = emoji

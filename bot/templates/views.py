@@ -53,7 +53,6 @@ class BaseView(_View):
 
     def __new__(cls, *args: Any, **kwargs: Any):
         self = super().__new__(cls)
-        self.on_timeout = cls._wrap_timeout(self)
         return self
 
 
@@ -94,17 +93,6 @@ class BaseView(_View):
 
         except HTTPException:
             pass # type: ignore
-
-    @classmethod
-    def _wrap_timeout(cls, self: Self):
-        original_on_timeout = self.on_timeout
-
-        async def on_timeout():
-            if self.message:
-                await _disable_all_items(self)
-            await original_on_timeout()
-
-        return on_timeout
 
 
 

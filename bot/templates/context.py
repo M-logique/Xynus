@@ -12,6 +12,10 @@ from discord.utils import cached_property
 from .embeds import ConfirmationEmbed
 from .views import ConfirmationView, ViewWithDeleteButton
 from discord.ext.commands.context import MISSING
+from discord.sticker import GuildSticker, StickerItem
+from discord.poll import Poll
+from discord import NotFound
+from asyncio import sleep
 
 
 if TYPE_CHECKING:
@@ -105,7 +109,138 @@ class XynusContext(commands.Context):
     
         except (Forbidden, HTTPException):
             pass # type: ignore
-            
+
+
+    @overload
+    async def reply(
+        self,
+        content: Optional[str] = ...,
+        *,
+        tts: bool = ...,
+        embed: Embed = ...,
+        file: File = ...,
+        stickers: Sequence[Union[GuildSticker, StickerItem]] = ...,
+        delete_after: float = ...,
+        nonce: Union[str, int] = ...,
+        allowed_mentions: AllowedMentions = ...,
+        reference: Union[Message, MessageReference, PartialMessage] = ...,
+        mention_author: bool = ...,
+        view: View = ...,
+        suppress_embeds: bool = ...,
+        ephemeral: bool = ...,
+        silent: bool = ...,
+        poll: Poll = ...,
+    ) -> Message:
+        ...
+
+    @overload
+    async def reply(
+        self,
+        content: Optional[str] = ...,
+        *,
+        tts: bool = ...,
+        embed: Embed = ...,
+        files: Sequence[File] = ...,
+        stickers: Sequence[Union[GuildSticker, StickerItem]] = ...,
+        delete_after: float = ...,
+        nonce: Union[str, int] = ...,
+        allowed_mentions: AllowedMentions = ...,
+        reference: Union[Message, MessageReference, PartialMessage] = ...,
+        mention_author: bool = ...,
+        view: View = ...,
+        suppress_embeds: bool = ...,
+        ephemeral: bool = ...,
+        silent: bool = ...,
+        poll: Poll = ...,
+    ) -> Message:
+        ...
+
+    @overload
+    async def reply(
+        self,
+        content: Optional[str] = ...,
+        *,
+        tts: bool = ...,
+        embeds: Sequence[Embed] = ...,
+        file: File = ...,
+        stickers: Sequence[Union[GuildSticker, StickerItem]] = ...,
+        delete_after: float = ...,
+        nonce: Union[str, int] = ...,
+        allowed_mentions: AllowedMentions = ...,
+        reference: Union[Message, MessageReference, PartialMessage] = ...,
+        mention_author: bool = ...,
+        view: View = ...,
+        suppress_embeds: bool = ...,
+        ephemeral: bool = ...,
+        silent: bool = ...,
+        poll: Poll = ...,
+    ) -> Message:
+        ...
+
+    @overload
+    async def reply(
+        self,
+        content: Optional[str] = ...,
+        *,
+        tts: bool = ...,
+        embeds: Sequence[Embed] = ...,
+        files: Sequence[File] = ...,
+        stickers: Sequence[Union[GuildSticker, StickerItem]] = ...,
+        delete_after: float = ...,
+        nonce: Union[str, int] = ...,
+        allowed_mentions: AllowedMentions = ...,
+        reference: Union[Message, MessageReference, PartialMessage] = ...,
+        mention_author: bool = ...,
+        view: View = ...,
+        suppress_embeds: bool = ...,
+        ephemeral: bool = ...,
+        silent: bool = ...,
+        poll: Poll = ...,
+    ) -> Message:
+        ...
+
+    async def reply(self, content: Optional[str] = None, **kwargs: Any) -> Message:
+        """|coro|
+
+        A shortcut method to :meth:`send` to reply to the
+        :class:`~discord.Message` referenced by this context.
+
+        For interaction based contexts, this is the same as :meth:`send`.
+
+        .. versionadded:: 1.6
+
+        .. versionchanged:: 2.0
+            This function will now raise :exc:`TypeError` or
+            :exc:`ValueError` instead of ``InvalidArgument``.
+
+        Raises
+        --------
+        ~discord.HTTPException
+            Sending the message failed.
+        ~discord.Forbidden
+            You do not have the proper permissions to send the message.
+        ValueError
+            The ``files`` list is not of the appropriate size
+        TypeError
+            You specified both ``file`` and ``files``.
+
+        Returns
+        ---------
+        :class:`~discord.Message`
+            The message that was sent.
+        """
+        
+        
+        try:
+            await self.channel.fetch_message(self.message.id)
+            return await super().reply(
+                content=content,
+                **kwargs
+            )
+        except (NotFound, HTTPException):
+            # send directly if failed to reply
+            return await self.send(content, **kwargs)
+
     async def confirm(
         self,
         text: str | None = None,

@@ -1,3 +1,4 @@
+from logging import getLogger
 from typing import Any, Dict, List, Optional, Union
 
 from discord import Member, Message, VoiceClient, app_commands
@@ -13,8 +14,6 @@ from bot.templates.views import Pagination
 from bot.templates.wrappers import check_for_player, check_voice_client
 from bot.utils.config import Emojis
 from bot.utils.functions import chunker
-
-from logging import getLogger
 
 emojis = Emojis()
 note = emojis.get("music_note")

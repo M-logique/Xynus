@@ -8,7 +8,6 @@ from ..utils.functions import disable_all_items
 
 if TYPE_CHECKING:
     from discord import Interaction
-    
 
     from ..core import Xynus
     from .context import XynusContext

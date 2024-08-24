@@ -12,7 +12,6 @@ from discord.ext import commands as _commands
 from ..utils.functions import format_command_params, split_camel_case
 
 
-
 class SimpleEmbed(_Embed):
     """
     Discord embed with a timestamp and an optional footer including client's name and avatar.

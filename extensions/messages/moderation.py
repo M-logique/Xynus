@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 from re import compile, escape
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from discord import (AllowedMentions, Member, Message,
-                     NotFound, User, app_commands)
+from discord import (AllowedMentions, Member, Message, NotFound, User,
+                     app_commands)
 from discord.ext import commands
 
 from bot.templates.cogs import XynusCog
@@ -12,7 +12,6 @@ from bot.utils.config import Emojis
 from bot.utils.functions import chunker
 
 if TYPE_CHECKING:
-
     from bot.templates.context import XynusContext
 
 _emojis = Emojis()

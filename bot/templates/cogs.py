@@ -1,15 +1,15 @@
-from typing import TYPE_CHECKING, Any, Optional, Self
+from typing import TYPE_CHECKING, Any, Optional, Self, Union
 
 from discord import PartialEmoji
 from discord.ext import commands as _commands
 
 from ..core import Xynus as _Xynus
-from typing import Union
 
 if TYPE_CHECKING:
     from ..core import Xynus
 
 from discord.ui import Modal
+
 
 class XynusCog(_commands.Cog):
 

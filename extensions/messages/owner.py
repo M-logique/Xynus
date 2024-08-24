@@ -17,9 +17,7 @@ _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
 
 
-class Owner(XynusCog):
-
-    emoji = _emojis.get("crown")
+class Owner(XynusCog, emoji=_emojis.get("crown")):
 
 
     @commands.command(

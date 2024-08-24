@@ -20,9 +20,7 @@ checkmark = _emojis.get("checkmark")
 crossmark = _emojis.get("crossmark")
 exclamation = _emojis.get("exclamation")
 
-class Moderation(XynusCog):
-
-    emoji = _emojis.get("shield")
+class Moderation(XynusCog, emoji=_emojis.get("shield")):
 
     @commands.hybrid_command(
         name="ban", 

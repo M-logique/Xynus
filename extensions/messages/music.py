@@ -53,10 +53,9 @@ LAVALINKS = [
 ]
 
 
-class Music(XynusCog):
+class Music(XynusCog, emoji=emojis.get("music_note")):
 
     log = getLogger("xynus.music")
-    emoji = emojis.get("music_note")
     cache = dict()
 
     # Listeners

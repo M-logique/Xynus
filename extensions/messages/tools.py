@@ -31,9 +31,8 @@ crossmark = _emojis.get("crossmark")
 exclamation = _emojis.get("exclamation")
 
 
-class Tools(XynusCog):
+class Tools(XynusCog, emoji=_emojis.get("tools")):
 
-    emoji = _emojis.get("tools")
     
     @commands.hybrid_command(
         name="steal",

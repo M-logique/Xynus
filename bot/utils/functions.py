@@ -90,15 +90,15 @@ async def disable_all_items(
             item.disabled = True
 
     else:
-
+        
         try:
 
             await view.message.edit(
                 view=view
             )
 
-        except (_Forbidden, _HTTPException):
-            pass
+        except (_Forbidden, _HTTPException, AttributeError):
+            pass # type: ignore
 
 def chunker(text, chunk_size: int):
     length = len(text)

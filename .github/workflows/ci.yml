@@ -1,0 +1,28 @@
+name: Lint and Format
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install isort pylint
+
+    - name: Run isort
+      run: |
+        isort . 
+
+    - name: Run Pylint
+      run: |
+        pylint **/*.py --fail-under=6
+      continue-on-error: true

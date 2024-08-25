@@ -37,23 +37,33 @@ jobs:
         run: |
           # Update the __version__ in bot/__init__.py
           version_file="bot/__init__.py"
+          
+          # Check if the __version__ line exists in the file
           if grep -q '__version__ =' "$version_file"; then
             # Extract the current version
             current_version=$(grep '__version__ =' "$version_file" | cut -d'"' -f2)
+            
+            # Split the version into components
             IFS='.' read -r -a version_parts <<< "$current_version"
             major="${version_parts[0]}"
             minor="${version_parts[1]}"
             patch="${version_parts[2]}"
+            
+            # Increment the patch version
             patch=$((patch + 1))
             new_version="$major.$minor.$patch"
+            
             # Update the version in the file
             sed -i "s/__version__ = \"$current_version\"/__version__ = \"$new_version\"/" "$version_file"
             echo "Version updated to $new_version"
+            
+            # Commit the changes
             git add "$version_file"
             git commit -m "Update version to $new_version"
           else
             echo "__version__ not found in $version_file"
             exit 1
+
 
       - name: Commit changes
         run: |

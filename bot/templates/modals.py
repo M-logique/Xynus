@@ -495,3 +495,5 @@ class LoadMessageModal(EmbedBaseModal, title="Loading embed from its url"):
 
         await original_message.edit(embed=self.parent_view.current_embed, view=self.parent_view)
         await interaction.edit_original_response(content="Loaded!")
+
+        

@@ -88,4 +88,3 @@ class EditWithModalButton(_Button['EmbedEditor']):
         if not self.view:
             raise DiscordException('No view was found attached to this modal.')
         await interaction.response.send_modal(self.modal(self.view))
-

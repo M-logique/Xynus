@@ -13,7 +13,8 @@ class Database:
         """Initialize the Database object.
 
         Parameters:
-        connection_path (Optional[str]): Path to the SQLite database file. Defaults to "./DataBase.db".
+        connection_path (Optional[str]): Path to the SQLite database file.
+        Defaults to "./DataBase.db".
         tables (Sequence[str]): Table names to be created in the database if they do not exist.
 
         Returns:
@@ -24,15 +25,15 @@ class Database:
         self._connection = sqlite3.Connection(
             connection_path
         )
-        
+
 
         self._setup(tables)
 
 
 
     def get(
-            self, 
-            key: str, 
+            self,
+            key: str,
             table: Optional[str] = "main"
     ) -> Union[None, Any]:
         """Retrieve a value from the database using a hierarchical key.
@@ -55,9 +56,9 @@ class Database:
             return root_value
 
     def set(
-            self, 
-            key: str, 
-            value: Any, 
+            self,
+            key: str,
+            value: Any,
             table: Optional[str] = "main"
     ) -> None:
         """Set a value in the database using a hierarchical key.
@@ -84,8 +85,8 @@ class Database:
         self._set(key=root_key, value=root_value, table=table)
 
     def delete(
-            self, 
-            key: str, 
+            self,
+            key: str,
             table: Optional[str] = "main"
     ) -> bool:
         """Delete a value from the database using a hierarchical key.
@@ -103,7 +104,7 @@ class Database:
 
         if root_value is None:
             return False
-        
+
 
         data = self._traverse_dict(root_value, keys[1:])
 
@@ -111,10 +112,10 @@ class Database:
             del data[keys[-1]]
             if data == {}:
                 return self._delete(key=root_key, table=table)
-            
+
             self._set(root_key, root_value, table)
             return True
-        
+
 
         return self._delete(
             key=key,
@@ -124,9 +125,9 @@ class Database:
 
 
     def sum(
-            self, 
-            key: str, 
-            value: float, 
+            self,
+            key: str,
+            value: float,
             table: Optional[str] = "main"
     ) -> None:
         """Add a number to a stored value in the database.
@@ -154,14 +155,14 @@ class Database:
         data = self._traverse_dict(root_value, keys[1:], create_missing=True)
         if not self._is_float(data.get(keys[-1], 0)):
             raise ValueError("The value at the key should be an integer or float.")
-        
+
         data[keys[-1]] = data.get(keys[-1], 0) + value
         self._set(root_key, root_value, table)
 
     def sub(
-            self, 
-            key: str, 
-            value: float, 
+            self,
+            key: str,
+            value: float,
             table: Optional[str] = "main"
     ) -> None:
         """Subtract a number from a stored value in the database.
@@ -195,9 +196,9 @@ class Database:
         self._set(root_key, root_value, table)
 
     def push(
-        self, 
-        key: str, 
-        value: Any, 
+        self,
+        key: str,
+        value: Any,
         table: Optional[str] = "main"
     ) -> None:
         """Append a value to a list stored in the database.
@@ -233,11 +234,11 @@ class Database:
 
            data[keys[-1]].append(value)
         self._set(root_key, root_value, table)
-    
+
     def pull(
-        self, 
-        key: str, 
-        value: Any, 
+        self,
+        key: str,
+        value: Any,
         table: Optional[str] = "main"
     ) -> None:
         """Remove a value from a list stored in the database.
@@ -269,9 +270,9 @@ class Database:
         if not isinstance(data.get(keys[-1], []), Sequence):
             raise ValueError("The value at the key should be a list.")
         if value in data.get(keys[-1], []):
-           
+
            data[keys[-1]].remove(value)
-        
+
         self._set(root_key, root_value, table)
 
 
@@ -293,11 +294,11 @@ class Database:
         cur = self._connection.cursor()
         for table in tables:
             cur.execute(f'CREATE TABLE IF NOT EXISTS "{table}" (key UNIQUE, value)')
-        
+
         self._connection.commit()
 
 
-            
+
 
     def _get(
             self,
@@ -329,7 +330,7 @@ class Database:
                 return json.loads(selected_value[0][0])
 
         return None
-                
+
 
 
     def _set(
@@ -366,8 +367,8 @@ class Database:
 
         self._connection.commit()
 
-        
-    
+
+
     def _delete(
             self,
             key: str,
@@ -395,7 +396,7 @@ class Database:
 
         cur = self._connection.cursor()
         cur.execute(f"DELETE FROM \"{table}\" WHERE key = ?", (key,))
-        
+
         self._connection.commit()
 
         new_value = self._get(
@@ -406,15 +407,15 @@ class Database:
         return old_value != new_value
 
 
-    
 
-    
+
+
     def _sum(
             self,
             key: str,
             value: float,
             table: Optional[str] = "main"
-            
+
     ) -> None:
         """Add a number to a stored value in the database.
 
@@ -450,20 +451,20 @@ class Database:
                 new_value,
                 table
             )
-        
+
 
         return self._set(
             key,
             value,
             table
         )
-     
+
     def _sub(
             self,
             key: str,
             value: float,
             table: Optional[str] = "main"
-            
+
     ) -> None:
         """Subtract a number from a stored value in the database.
 
@@ -499,7 +500,7 @@ class Database:
                 new_value,
                 table
             )
-        
+
 
         return self._set(
             key,
@@ -531,7 +532,7 @@ class Database:
 
         cur.execute(f'SELECT * FROM {table_name}')
         values = [{row[0]: row[1]} for row in cur.fetchall()]
-        
+
         return values
 
 
@@ -546,11 +547,11 @@ class Database:
 
 
         return self
-    
+
     def __exit__(
             self,
-            exc_type: Any, 
-            exc_val: Any, 
+            exc_type: Any,
+            exc_val: Any,
             exc_tb: Any
     ) -> None:
         """Exit the runtime context related to this object.
@@ -585,14 +586,14 @@ class Database:
         try:
             float(value)
             return True
-        
+
         except ValueError:
             return False
-    
+
     def _traverse_dict(
-            self, 
-            data: Dict, 
-            keys: Sequence[str], 
+            self,
+            data: Dict,
+            keys: Sequence[str],
             create_missing: bool = False
     ):
         """Traverse a dictionary to get or set a nested value based on keys.
@@ -610,3 +611,4 @@ class Database:
                 data[key] = {}
             data = data[key]
         return data
+    

@@ -28,3 +28,4 @@ class XynusCog(_commands.Cog):
         # which will be defined here.
 
         cls.emoji = emoji
+        

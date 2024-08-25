@@ -1837,5 +1837,3 @@ class PersistentViews:
             attr = getattr(self, name)
             if isinstance(attr, type) and issubclass(attr, _View):
                 yield attr
-
-

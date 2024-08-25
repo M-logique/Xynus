@@ -16,3 +16,4 @@ class Emojis:
     ) -> Union[None, Any]:
 
         return self._config.get(key)
+

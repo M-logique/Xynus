@@ -49,5 +49,3 @@ class EmbedFlags(commands.FlagConverter, prefix='--', delimiter='', case_insensi
 
 class JsonFlag(commands.FlagConverter, prefix='--', delimiter='', case_insensitive=True):
     json: str
-
-

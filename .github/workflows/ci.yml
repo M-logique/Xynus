@@ -1,0 +1,79 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  format-and-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Add final newline if missing and remove trailing whitespace
+        run: |
+          # Add final newline if missing and remove trailing whitespace
+          find . -type f -name '*.py' -exec sh -c 'for file; do
+            if ! tail -c1 "$file" | read -r _; then
+              echo >> "$file"
+            fi
+            sed -i -e "s/[[:space:]]*$//" "$file"
+          done' sh {} +
+
+      - name: Run isort
+        run: |
+          isort .
+
+      - name: Update version
+        run: |
+          # Update the __version__ in bot/__init__.py
+          version_file="bot/__init__.py"
+          if grep -q '__version__ =' "$version_file"; then
+            # Extract the current version
+            current_version=$(grep '__version__ =' "$version_file" | cut -d'"' -f2)
+            IFS='.' read -r -a version_parts <<< "$current_version"
+            major="${version_parts[0]}"
+            minor="${version_parts[1]}"
+            patch="${version_parts[2]}"
+            patch=$((patch + 1))
+            new_version="$major.$minor.$patch"
+            # Update the version in the file
+            sed -i "s/__version__ = \"$current_version\"/__version__ = \"$new_version\"/" "$version_file"
+            echo "Version updated to $new_version"
+            git add "$version_file"
+            git commit -m "Update version to $new_version"
+          else
+            echo "__version__ not found in $version_file"
+            exit 1
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are changes
+          if [[ -n $(git status --porcelain) ]]; then
+            git add .
+            git commit -m "Format code and update version"
+          else
+            echo "No changes to commit"
+            exit 0
+          fi
+
+      - name: Run pylint and check score
+        id: pylint
+        run: |
+          pylint_score=$(pylint $(find . -name "*.py") | tee pylint_output.log | tail -n 10)
+          # Extract the final score from pylint output
+          final_score=$(echo "$pylint_score" | grep "Your code has been rated at" | awk '{print $7}' | cut -d'/' -f1)
+          if (( $(echo "$final_score < 6.0" | bc -l) )); then
+            echo "pylint score is below 6.0, failing the build"
+            exit 1
+          else
+            echo "pylint score is $final_score"
+          fi
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+

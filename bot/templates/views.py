@@ -961,11 +961,7 @@ class EmbedEditor(BaseView):
         await interaction.response.edit_message(embed=self.current_embed, view=self)
 
     async def on_timeout(self) -> None:
-        if self.message:
-            if self.embed:
-                await self.message.edit(view=None)
-            else:
-                await self.message.delete()
+        await _disable_all_items(self)
 
 
 class FieldSelectorView(BaseView):

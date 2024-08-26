@@ -79,7 +79,7 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
             else:
                 and_more = lambda users: f"and {len(users) - 5} more" if len(users) > 5 else ""
                 get_names = lambda users: [i.name for i in users]
-                failed_to_ban = f"\n{crossmark} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed != success else ""
+                failed_to_ban = f"\n{crossmark} | Failed to ban {', '.join(get_names(failed)[:5:])} {and_more(failed)}" if failed else ""
                 banned = f"{checkmark} | Banned {', '.join(get_names(success)[:5:])} {and_more(success)}" if success else ""
 
                 embed = SimpleEmbed(

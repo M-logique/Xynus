@@ -21,7 +21,6 @@ from discord import utils as _utils
 from discord.ext import commands as _commands
 from discord.utils import cached_property as _cached_property
 
-from .. import __name__ as name
 from .. import __version__ as version
 from ..handlers.errorhandler import XynusExceptionManager
 from ..templates.context import XynusContext
@@ -94,7 +93,7 @@ class Xynus(_commands.AutoShardedBot):
         await self.change_presence(
             activity=_Activity(
                 type=_ActivityType.watching, 
-                name=f"?help - {name} V{version}"
+                name=f"?help - Xynus V{version}"
             ),
             status=Status.idle
         )

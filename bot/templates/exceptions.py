@@ -9,8 +9,7 @@ from discord.ext.commands.cooldowns import BucketType, Cooldown
 
 
 class XynusException(ClientException):
-
-    __slots__: Tuple[str, ...] = ()
+    __slots__: Tuple[str, ...] = tuple()
 
 
 class XynusTracebackOptional(TypedDict, total=False):

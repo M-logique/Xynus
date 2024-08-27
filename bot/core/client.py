@@ -90,6 +90,7 @@ class Xynus(_commands.AutoShardedBot):
         self.logger = _Logger("xynus.main")
 
         self.views: _Dict[_View] = dict()
+        self._cmd_mapping_cache: Dict[str, Any] = dict()
         
 
         self.error_webhook_url: _Optional[str] = settings.ERROR_WEBHOOK
@@ -97,7 +98,6 @@ class Xynus(_commands.AutoShardedBot):
         
         self.context_class: _Union[XynusContext, _commands.Context] = XynusContext
 
-        self._cmd_mapping_cache: Dict[str, Any] = dict()
         
         super().__init__(
             command_prefix=_commands.when_mentioned_or(*prefix),

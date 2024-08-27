@@ -6,7 +6,7 @@ from time import time
 from typing import TYPE_CHECKING
 from typing import Dict as _Dict
 from typing import Optional as _Optional
-from typing import Tuple, Type, TypeVar
+from typing import Tuple, Type, TypeVar, Dict, Any
 from typing import Union as _Union
 
 from aiohttp import ClientSession
@@ -20,6 +20,7 @@ from discord import Status
 from discord import utils as _utils
 from discord.ext import commands as _commands
 from discord.utils import cached_property as _cached_property
+from discord.ext.commands.view import StringView
 
 from .. import __version__ as version
 from ..handlers.errorhandler import XynusExceptionManager
@@ -45,21 +46,42 @@ __all__: Tuple[str, ...] = (
     "Xynus"
 )
 
-DCT = TypeVar("DCT", bound="XynusContext")
+XCT = TypeVar("XCT", bound="XynusContext")
 
 # Custom context handling from:
 #   https://github.com/DuckBot-Discord/duck-hideout-manager-bot/blob/main/utils/bot_bases/context.py
 
 
 class Xynus(_commands.AutoShardedBot):
-    
+    """Custom implementation of an AutoShardedBot for Xynus."""
+
+
+    __slots__: Tuple[str, ...] = (
+        "error_webhook_url",
+        "logger",
+        "views",
+        "context_class",
+        "_start_time",
+        "_cmd_mapping_cache"
+    )
 
     def __init__(
             self,
             intents: "_Intents", 
             allowed_mentions: "_AllowedMentions",
             **options
-        ):
+        ) -> None:
+        """
+        Initializes the bot with the given parameters.
+
+        :param intents: The intents to use for the bot.
+        :type intents: :class:`discord.Intents`
+        :param allowed_mentions: The allowed mentions settings for the bot.
+        :type allowed_mentions: :class:`discord.AllowedMentions`
+        :param options: Additional options to pass to the bot.
+        :type options: dict
+        """
+
 
 
         owner_ids = settings.OWNERS
@@ -75,6 +97,7 @@ class Xynus(_commands.AutoShardedBot):
         
         self.context_class: _Union[XynusContext, _commands.Context] = XynusContext
 
+        self._cmd_mapping_cache: Dict[str, Any] = dict()
         
         super().__init__(
             command_prefix=_commands.when_mentioned_or(*prefix),
@@ -82,13 +105,18 @@ class Xynus(_commands.AutoShardedBot):
             strip_after_prefix=True,
             allowed_mentions=allowed_mentions, 
             intents=intents,
-            **options
+            case_insensitive=True,
+            **options,
         )
 
         
 
     async def on_ready(self):
+        """
+        Called when the bot is ready.
 
+        This function changes the bot's presence, loads extensions, and syncs the command tree.
+        """
         
         await self.change_presence(
             activity=_Activity(
@@ -125,7 +153,19 @@ class Xynus(_commands.AutoShardedBot):
         if not self._start_time:
             self._start_time = _utils.utcnow()
     
-    async def on_command_error(self, ctx: _commands.Context, error: _commands.CommandError):
+    async def on_command_error(self, ctx: "XynusContext", error: _commands.CommandError):
+        """
+        Handles errors raised during command invocation.
+
+        :param ctx: The context in which the command was invoked.
+        :type ctx: :class:`XynusContext`
+        :param error: The exception that was raised.
+        :type error: :class:`discord.ext.commands.CommandError`
+        """
+
+
+
+
         from ..templates.views import ViewWithDeleteButton
         if isinstance(error, _commands.CommandNotFound):
             return # type: ignore
@@ -161,6 +201,19 @@ class Xynus(_commands.AutoShardedBot):
             pass # type: ignore
         
     async def on_error(self, event_method: str, /, *args, **kwargs):
+        """
+        Handles errors that occur during event processing.
+
+        :param event_method: The name of the event method that caused the error.
+        :type event_method: str
+        :param args: The positional arguments that were passed to the event.
+        :type args: tuple
+        :param kwargs: The keyword arguments that were passed to the event.
+        :type kwargs: dict
+        """
+
+
+
         formatted_kwargs = " ".join(f"{x}={y}" for x, y in kwargs.items())
         self.logger.error(
             f"Error in event {event_method}. Args: {args}. Kwargs: {formatted_kwargs}",
@@ -170,6 +223,16 @@ class Xynus(_commands.AutoShardedBot):
 
 
     async def load_extensions(self, path: str) -> None:
+        """|coro|
+
+        Loads all extensions from a given directory path.
+
+        :param path: The directory path containing extensions to load.
+        :type path: str
+        """
+
+
+
         for extension in search_directory(path):
 
             log = getLogger("xynus.ext")
@@ -182,8 +245,10 @@ class Xynus(_commands.AutoShardedBot):
                 log.error("There was an error loading {}, Error: {}".format(extension, err))
 
     def run(self):
+        """Runs the bot.
 
-
+        This method starts the bot using the provided settings and logging configurations.
+        """
 
         return super().run(
             settings.TOKEN,
@@ -196,24 +261,54 @@ class Xynus(_commands.AutoShardedBot):
 
 
     async def get_context(
-        self, message: "_Message", *, cls: Type[DCT] | None = None
+        self, message: "_Message", *, cls: Type[XCT] | None = None
     ) -> _Union[XynusContext, _commands.Context["XynusContext"]]:
-        """|coro|
-
-        Used to get the invocation context from the message.
-
-        Parameters
-        ----------
-        message: :class:`~discord.Message`
-            The message to get the prefix of.
-        cls: Type[:class:`XynusContext`]
-            The class to use for the context.
         """
+        |coro|
+
+        Retrieves the invocation context for the given message, checking for cached command mappings.
+
+        :param message: The message to get the context from, including its prefix and command.
+        :type message: :class:`discord.Message`
+        :param cls: The class to use for the context. Defaults to the bot's context class.
+        :type cls: Type[:class:`XynusContext`], optional
+        :return: The invocation context for the message.
+        :rtype: :class:`XynusContext`
+        """
+
+
         
         new_cls = cls or self.context_class
+        cached_mapping: Dict[str, Any] = self._cmd_mapping_cache.get(message.author.id, {})
+
+        prefixes = await self.get_prefix(message)
+        if not prefixes:
+            return await super().get_context(message, cls=new_cls)
+        
+        view = StringView(message.content)
+        for prefix in prefixes:
+            view.skip_string(prefix)
+        
+        command_name = view.get_word().lower()
+        cached_command: _Optional[str] = cached_mapping.get(command_name, None)
+
+        if cached_command:
+            message.content = prefixes[0]+cached_command
+
         return await super().get_context(message, cls=new_cls)
 
+        
+
     async def setup_hook(self) -> None:
+        """
+        |coro|
+
+        Initial setup tasks for the bot, such as creating directories
+        and establishing database connections.
+
+        """
+
+
         if not path.exists("./data"):
             _makedirs("./data")
         
@@ -233,7 +328,7 @@ class Xynus(_commands.AutoShardedBot):
                 port=settings.PORT
             )
 
-            taked_time = round(time() - start_time , 3)
+            taked_time = round((time() - start_time) * 1000 , 3)
 
             self.db = KVDatabase(self.pool)
             await self.db._setup()
@@ -257,6 +352,15 @@ class Xynus(_commands.AutoShardedBot):
             user_id: int,
             view: "_View"
     ) -> None:
+        """
+        Sets a specific view for a user.
+
+        :param user_id: The ID of the user to associate with the view.
+        :type user_id: int
+        :param view: The view to be associated with the user.
+        :type view: :class:`discord.ui.View`
+        """
+
         
         self.views[user_id] = view
 
@@ -267,10 +371,10 @@ class Xynus(_commands.AutoShardedBot):
     ) -> str:
         """Load an SQL query from a file.
 
-        Parameters
-        ----------
-        name :class:`str`:
-            The name of the SQL file containing the query.
+        :param name: The name of the SQL file containing the query.
+        :type name: str
+        :return: The SQL query as a string.
+        :rtype: str
         """
 
 
@@ -280,7 +384,7 @@ class Xynus(_commands.AutoShardedBot):
         
 
     @_cached_property
-    def color(self):
+    def color(self) -> _Color:
         """Retrives client's vanity color."""
 
         return _Color.from_rgb(*settings.MAIN_COLOR)

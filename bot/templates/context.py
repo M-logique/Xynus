@@ -1,4 +1,4 @@
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
+from typing import (TYPE_CHECKING, Any, Tuple, Dict, List, Optional,
                     Sequence, Union, overload)
 
 from discord import (AllowedMentions, Embed, File, Forbidden, Interaction,
@@ -25,6 +25,12 @@ if TYPE_CHECKING:
 
 
 class XynusContext(commands.Context):
+
+    __slots__: Tuple[str, ...] = (
+        "bot",
+        "client",
+        "db"
+    )
 
     def __init__(
         self,
@@ -82,6 +88,7 @@ class XynusContext(commands.Context):
 
         self.bot: "Xynus" = bot
         self.client: "Xynus" = bot
+        self.db = bot.db
         super().__init__(message=message, bot=bot, view=view, args=args, kwargs=kwargs, prefix=prefix, command=command, invoked_with=invoked_with, invoked_parents=invoked_parents, invoked_subcommand=invoked_subcommand, subcommand_passed=subcommand_passed, command_failed=command_failed, current_parameter=current_parameter, current_argument=current_argument, interaction=interaction)
 
 
@@ -103,6 +110,8 @@ class XynusContext(commands.Context):
         view: Optional[View] = None,
         suppress_embeds: bool = False,
         ephemeral: bool = False,
+        delete_button: bool = True,
+        **kwargs: Any
     ) -> Message:
         ...
 
@@ -160,11 +169,12 @@ class XynusContext(commands.Context):
 
             kwargs['embeds'] = embeds
 
-        if kwargs.get('delete_button'):
-            if kwargs.get('view'):
-                raise TypeError("'view' and 'delete_button' cannot be passed together.")
-
+        if kwargs.get("delete_button"):
+            if kwargs.get("view"):
+                raise ValueError("'delete_button' and 'view' cannot be passed together.")
+            
             kwargs["view"] = ViewWithDeleteButton(self.author)
+            del kwargs["delete_button"]
 
         try:
             return await super().send(content, **kwargs)
@@ -174,7 +184,7 @@ class XynusContext(commands.Context):
 
 
     @overload
-    async def reply(
+    async def reply( # type: ignore
         self,
         content: Optional[str] = ...,
         *,
@@ -196,7 +206,7 @@ class XynusContext(commands.Context):
         ...
 
     @overload
-    async def reply(
+    async def reply( # type: ignore
         self,
         content: Optional[str] = ...,
         *,
@@ -218,7 +228,7 @@ class XynusContext(commands.Context):
         ...
 
     @overload
-    async def reply(
+    async def reply( # type: ignore
         self,
         content: Optional[str] = ...,
         *,
@@ -240,7 +250,7 @@ class XynusContext(commands.Context):
         ...
 
     @overload
-    async def reply(
+    async def reply( # type: ignore
         self,
         content: Optional[str] = ...,
         *,

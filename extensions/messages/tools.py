@@ -1,5 +1,5 @@
 from time import time
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from aiohttp import ClientSession
 from discord import Embed, Interaction, Member, Role, app_commands, utils
@@ -20,7 +20,8 @@ from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
-                                 suggest_similar_strings)
+                                 suggest_similar_strings, encrypt)
+from typing import Dict, Any
 
 if TYPE_CHECKING:
     from bot.templates.context import XynusContext
@@ -53,7 +54,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @check_views
     async def steal(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         *,
         emojis: Optional[str] = None,
         force_add: Optional[bool] = False,
@@ -203,7 +204,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @commands.cooldown(1, 5, commands.BucketType.member)
     async def list(
         self,
-        ctx: commands.Context
+        ctx: "XynusContext"
     ):
 
         prefix = await self.client.get_prefix(ctx)
@@ -226,7 +227,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         )
 
         return await ctx.reply(
-            embed=embed
+            embed=embed,
+            delete_button=True
         )
 
 
@@ -245,7 +247,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @check_views
     async def list_bans(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         ephemeral: Optional[bool] = False,
         limit: Optional[int] = None
     ):
@@ -325,7 +327,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @check_views
     async def list_mutes(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         ephemeral: Optional[bool] = False
     ):
         
@@ -428,7 +430,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @check_views
     async def list_members(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         with_role: Optional[Role] = None,
         filter_members: app_commands.Choice[str] = "all",
         ephemeral: Optional[bool] = False,
@@ -518,7 +520,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @check_views
     async def help_cmd(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         *,
         cmd: Optional[str] = None
     ):
@@ -724,7 +726,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @commands.cooldown(1, 30, commands.BucketType.member)
     async def whisper(
         self,
-        ctx: commands.Context,
+        ctx: "XynusContext",
         member: Member,
         *,
         text: Optional[str] = None
@@ -791,6 +793,83 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             content=f":eyes: {member.mention}, You have a very very very secret message from {ctx.author.mention}!\nYou can only use the button until <t:{expiry_time}:t>.",
             view=view
         )
+
+    @commands.hybrid_group(
+            name="mappings",
+            aliases=["maps"]
+    )
+    # @commands.cooldown(1, 5, commands.BucketType.member)
+    async def mappings(self, ctx: "XynusContext"):
+        
+        cmds = get_all_commands(self.mappings.commands)
+
+        embed = CommandsEmbed(
+            commands=cmds,
+            title="Mappings",
+            total_commands=len(cmds)
+        )
+
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )
+
+    @mappings.command(
+            name="set",
+            description="Add or edit a custom command mapping",
+    )
+    async def mappings_set(
+        self,
+        ctx: "XynusContext",
+        trigger: str,
+        *,
+        command: str
+    ):
+        trigger = "sex"
+        user_cached_maps: Dict[str, Any] = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            keys=[ctx.author.id, trigger],
+            create_missing=True
+        )
+
+        existant = bool(user_cached_maps.get(trigger))
+
+        query = """
+        INSERT INTO mappings(
+            user_id,
+            trigger,
+            command
+        )
+        VALUES (
+            $1,
+            $2,
+            $3
+        )
+        ON CONFLICT (user_id, trigger)
+        DO UPDATE
+            SET command = EXCLUDED.command;
+        """
+        await ctx.pool.fetch(query, ctx.author.id, encrypt(trigger), encrypt(command))
+
+        ctx.client._cmd_mapping_cache[ctx.author.id][trigger] = command
+
+        if existant:
+            description = f"Custom command mapping **{trigger!r}** updated."
+        else:
+            description = f"Added custom command mapping **{trigger!r}**"
+        
+        embed = Embed(
+            description=description,
+            color=ctx.client.color
+        )
+
+        await ctx.send(embed=embed)
+        # await ctx.reply(
+        #     embed=embed,
+        #     delete_button=True
+        # )
+            
+
 
     # Embed builder from HideoutManager
     # https://github.com/DuckBot-Discord/duck-hideout-manager-bot/

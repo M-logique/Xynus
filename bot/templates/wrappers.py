@@ -3,8 +3,6 @@ from types import FunctionType
 from typing import TYPE_CHECKING, Union
 
 from discord import Forbidden, HTTPException
-from ..utils.functions import disable_all_items
-
 
 if TYPE_CHECKING:
     from discord import Interaction

@@ -1,8 +1,7 @@
-from typing import TYPE_CHECKING, Optional, Union, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 from discord import PartialEmoji
 from discord.ext import commands as _commands
-
 
 if TYPE_CHECKING:
     from ..core import Xynus

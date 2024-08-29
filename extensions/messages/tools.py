@@ -969,7 +969,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
                 "embed": embed,
             }
             
-            return kwargs, len(cached_items)
+            return kwargs, len(chunks)
 
         view = Pagination(get_page, ctx=ctx)
         view.add_item(DeleteButton())

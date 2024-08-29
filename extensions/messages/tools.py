@@ -20,7 +20,7 @@ from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, extract_emoji_info_from_text,
                                  filter_prefix, get_all_commands,
                                  remove_duplicates_preserve_order,
-                                 suggest_similar_strings, encrypt)
+                                 suggest_similar_strings, encrypt, decrypt)
 from typing import Dict, Any
 
 if TYPE_CHECKING:
@@ -257,7 +257,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         if bans == []:
 
-            return await ctx.reply(f"{_emojis('exclamation')} Didn't find any banned member in this server")
+            return await ctx.reply(f"{_emojis.get('exclamation')} Didn't find any banned member in this server")
 
         bans = [
             "`[{}]`: `{}` - `{}`{}".format(
@@ -796,17 +796,19 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
     @commands.hybrid_group(
             name="mappings",
-            aliases=["maps"]
+            aliases=["maps", "mapping"]
     )
-    # @commands.cooldown(1, 5, commands.BucketType.member)
+    @commands.cooldown(1, 5, commands.BucketType.member)
+    @check_views
     async def mappings(self, ctx: "XynusContext"):
         
-        cmds = get_all_commands(self.mappings.commands)
+        cmds = get_all_commands(commands=self.mappings.commands)
 
         embed = CommandsEmbed(
             commands=cmds,
             title="Mappings",
-            total_commands=len(cmds)
+            total_commands=len(cmds),
+            prefix=ctx.clean_prefix
         )
 
         await ctx.reply(
@@ -815,8 +817,13 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         )
 
     @mappings.command(
-            name="set",
-            description="Add or edit a custom command mapping",
+        name="set",
+        description="Add or edit a custom command mapping",
+        aliases=["add", "edit"]
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that will activate the custom command.",
+        command="The command to be executed when the trigger is used."
     )
     async def mappings_set(
         self,
@@ -825,12 +832,30 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         *,
         command: str
     ):
-        trigger = "sex"
+        trigger = trigger.lower().replace(" ", "")
         user_cached_maps: Dict[str, Any] = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
             keys=[ctx.author.id, trigger],
             create_missing=True
         )
+
+        if len(tuple(user_cached_maps.items())) > 30:
+            embed = Embed(
+                description=f"Sorry but you cannot add more than 30 mappings",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+
+        if ctx.client.get_command(trigger):
+            if not await ctx.confirm(
+                "**You are using one of the bot's commands as a trigger. "
+                "This will cause the original command to stop working. "
+                "Are you sure you want to use this trigger?**"
+            ):
+                return
 
         existant = bool(user_cached_maps.get(trigger))
 
@@ -838,20 +863,29 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         INSERT INTO mappings(
             user_id,
             trigger,
-            command
+            command,
+            created_at
         )
         VALUES (
             $1,
             $2,
-            $3
+            $3,
+            $4
         )
         ON CONFLICT (user_id, trigger)
         DO UPDATE
-            SET command = EXCLUDED.command;
+            SET command = EXCLUDED.command,
+                created_at = EXCLUDED.created_at;
         """
-        await ctx.pool.fetch(query, ctx.author.id, encrypt(trigger), encrypt(command))
+        await ctx.pool.fetch(
+            query, 
+            ctx.author.id, 
+            encrypt(trigger), 
+            encrypt(command),
+            int(time())
+        )
 
-        ctx.client._cmd_mapping_cache[ctx.author.id][trigger] = command
+        ctx.client._cmd_mapping_cache[ctx.author.id][trigger.lower()] = command
 
         if existant:
             description = f"Custom command mapping **{trigger!r}** updated."
@@ -863,12 +897,198 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             color=ctx.client.color
         )
 
-        await ctx.send(embed=embed)
-        # await ctx.reply(
-        #     embed=embed,
-        #     delete_button=True
-        # )
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )
+
+    @mappings.command(
+        name="list",
+        aliases=["show"],
+        description="Displays a list of your mappings"
+    )
+    @app_commands.describe(
+        ephemeral="Hide the bot's response from other users. (default: False)"
+    )
+    async def mappings_list(
+        self,
+        ctx: "XynusContext",
+        ephemeral: bool = False
+    ):
+
+        cached_items = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id],
+            True
+        ).get(ctx.author.id, {})
+
+
+        if not cached_items:
+            return await ctx.reply("You don't have any mapping yet!")
+
+
+        chunks = chunker(tuple(cached_items.items()), 10)
+
+        async def get_page(index: int):
+
+            s = 's' if len(cached_items) > 1 else ''
+            embed = Embed(
+                title=f"Total {len(cached_items)} mapping{s}",
+                color=ctx.client.color,
+                description="\n".join(
+                    [
+                        f"`[{i+1}]`: **`{key}`** - `{value[:20:]}"+f"{'...`' if len(value) > 20 else '`'}"
+
+                        for i, (key, value) in enumerate(chunks[index])
+                    ]
+                )
+            )
+            embed.set_footer(
+                icon_url=ctx.author.display_avatar,
+                text=f"Invoked by {ctx.author.display_name}"
+            )
+
+            kwargs = {
+                "embed": embed,
+            }
             
+            return kwargs, len(cached_items)
+
+        view = Pagination(get_page, ctx=ctx)
+        view.add_item(DeleteButton())
+
+        ctx.client.set_user_view(ctx.author.id, view)
+        await view.navegate(ephemeral=ephemeral)
+
+
+    @mappings.command(
+        name="view",
+        aliases=["info"],
+        description="Displays an some information about your mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that activates the custom command."
+    )
+    async def mappings_view(
+        self, 
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        trigger = trigger.lower()
+
+        cached_command = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id, trigger],
+            True
+        ).get(trigger, None)
+
+        if not cached_command:
+            embed = Embed(
+                description=f"Didn't find any custom command mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        query = """
+        SELECT 
+            command, 
+            created_at
+        FROM 
+            mappings
+        WHERE 
+            trigger = $1
+        AND 
+            user_id = $2;
+        """
+
+        record = await ctx.pool.fetchrow(query, encrypt(trigger), ctx.author.id)
+
+        created_at = record["created_at"]
+        command = decrypt(record["command"])
+
+        embed = Embed(
+            title=f"Mapping: {trigger.capitalize()}",
+            description=(
+                f"🔰 **Author**: {ctx.author.mention}\n"
+                f"❔ **Trigger**: `{trigger}`\n"
+                f"⌚️ **Created at**: <t:{created_at}:F>"
+            )
+        )
+        embed.add_field(
+            inline=False,
+            name="🧪 Command:",
+            value=command[:1024:]
+        )
+        embed.set_footer(
+            text=f"Invoked by {ctx.author.display_name}",
+            icon_url=ctx.author.display_avatar
+        )
+
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )
+        
+
+
+
+    @mappings.command(
+        name="delete",
+        aliases=["remove", "del"],
+        description="Delete an existing mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that activates the custom command."
+    )
+    async def mappings_delete(
+        self,
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        trigger = trigger.lower()
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id ,trigger],
+            True
+        )
+
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any custom command mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        
+
+        query = """
+        DELETE FROM mappings
+        WHERE user_id = $1
+        AND trigger = $2;
+        """
+        await ctx.pool.execute(query, ctx.author.id, encrypt(trigger))
+
+        # To prevent the Runtime error here,
+        # I made a copy of mappings to iterate
+        for key in tuple(ctx.client._cmd_mapping_cache[ctx.author.id].keys()):
+            if key == trigger:
+                del ctx.client._cmd_mapping_cache[ctx.author.id][trigger]
+
+        await ctx.reply(
+            embed=Embed(
+                description=f"Removed **{trigger!r}** from your custom command mappings",
+                color=ctx.client.color
+            ),
+            delete_button=True
+        )
 
 
     # Embed builder from HideoutManager
@@ -881,7 +1101,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         self,
         ctx: "XynusContext",
         *,
-        flags: Union[EmbedFlags, None],
+        flags: Optional[EmbedFlags],
     ):
         
         if flags is None:

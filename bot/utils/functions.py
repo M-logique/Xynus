@@ -253,9 +253,9 @@ def suggest_similar_strings(
         n: _Optional[int] = 3, 
         cutoff: _Optional[int] =0.6
 ) -> _Union[str, _Sequence[str]]:
-    close_matches = _get_close_matches(target, string_list, n=n, cutoff=cutoff)
     
-
+    
+    close_matches = _get_close_matches(target, string_list, n=n, cutoff=cutoff)
     return close_matches
 
 def insert_returns(body):
@@ -275,13 +275,21 @@ def insert_returns(body):
 
 
 def encrypt(text: str, /) -> str:
-    """To quickly encode a text to base64."""
+    """To quickly encode a text to base64.
+    
+    :param text: text to encrypt.
+    :type text: str
+    """
 
     if text is not None:
         return _b64encode(str(text).encode("utf-8")).decode("utf-8")
 
 def decrypt(text: str, /) -> str:
-    """To quickly decode an encrypted text."""
+    """To quickly decode an encrypted text.
+    
+    :param text: encrypted text to decrypt.
+    :type text: str
+    """
     
     if text is not None:
         return _b64decode(str(text).encode("utf-8")).decode("utf-8")

@@ -15,21 +15,15 @@ CREATE TABLE IF NOT EXISTS mappings(
     user_id BIGINT,
     guild_id BIGINT,
     trigger TEXT NOT NULL,
-    command TEXT NOT NULL
+    command TEXT NOT NULL,
+    created_at BIGINT NOT NULL
 );
 
--- ALTER TABLE mappings IF NOT EXISTS
--- ADD CONSTRAINT unique_user_trigger UNIQUE (user_id, trigger);
-
--- ALTER TABLE mappings IF NOT EXISTS
--- ADD CONSTRAINT unique_guild_trigger UNIQUE (guild_id, trigger);
-
--- ALTER TABLE mappings IF NOT EXISTS
--- ADD CONSTRAINT guild_user_not_null CHECK (guild_id IS NOT NULL OR user_id IS NOT NULL);
 
 DO $$
 BEGIN
-    -- Add unique_user_trigger constraint if it does not exist
+    -- Adding some CONSTRAINT (if not exists)
+
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
@@ -39,7 +33,7 @@ BEGIN
         ADD CONSTRAINT unique_user_trigger UNIQUE (user_id, trigger);
     END IF;
 
-    -- Add unique_guild_trigger constraint if it does not exist
+    
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
@@ -49,7 +43,7 @@ BEGIN
         ADD CONSTRAINT unique_guild_trigger UNIQUE (guild_id, trigger);
     END IF;
 
-    -- Add guild_user_not_null constraint if it does not exist
+    
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint

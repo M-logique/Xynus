@@ -310,9 +310,9 @@ class Xynus(_commands.AutoShardedBot):
             command_name = split(r'\s+', message_content.strip(), 1)[0].lower()
 
 
-        cached_command: _Optional[str] = cached_mapping.get(command_name, None)
-        if cached_command:
-            message.content = prefixes[0]+cached_command
+            cached_command: _Optional[str] = cached_mapping.get(command_name, None)
+            if cached_command:
+                message.content = prefixes[0]+cached_command
         
         
 

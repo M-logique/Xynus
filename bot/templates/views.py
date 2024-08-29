@@ -144,7 +144,6 @@ class Pagination(BaseView):
         self.update_buttons()
         
         if self.total_pages == 1:
-
             for item in self.children:
                 if item.row == 0:
                     item.disabled = True
@@ -208,9 +207,7 @@ class Pagination(BaseView):
     # @button(label=">>", style=ButtonStyle.blurple)
     @button(emoji=emojis.get("end"), style=ButtonStyle.blurple, row=0)
     async def end(self, interaction: Interaction, button: Button):
-
         self.index = self.total_pages -1
-
         await self.edit_page(interaction)
     
 
@@ -220,6 +217,7 @@ class Pagination(BaseView):
     @staticmethod
     def compute_total_pages(total_results: int, results_per_page: int) -> int:
         return ((total_results - 1) // results_per_page) + 1
+
 
 
 

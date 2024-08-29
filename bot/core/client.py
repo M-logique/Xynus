@@ -321,7 +321,7 @@ class Xynus(_commands.AutoShardedBot):
                     prefixes, 
                     command_name
                 )
-                
+
                 args = find_command_args(
                     message.content,
                     prefixes,
@@ -334,8 +334,6 @@ class Xynus(_commands.AutoShardedBot):
 
                 for i, arg in enumerate(listed_args):
                     kwargs[f"arg{i+1}"] = arg
-
-                print(kwargs)
 
                 cached_command = Template(cached_command).safe_substitute(
                     **kwargs

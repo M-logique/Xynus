@@ -2,9 +2,9 @@ from functools import wraps
 from types import FunctionType
 from typing import TYPE_CHECKING, Union
 
-from discord.ext import commands
-
+from discord import Forbidden, HTTPException
 from ..utils.functions import disable_all_items
+
 
 if TYPE_CHECKING:
     from discord import Interaction
@@ -31,7 +31,11 @@ def check_views(
         prev_view = client.views.get(user_id)
 
         if prev_view:
-            await disable_all_items(prev_view)
+            if hasattr(prev_view, "message"):
+                try:
+                    await prev_view.message.edit(view=None)
+                except (Forbidden, HTTPException):
+                    pass
             del client.views[user_id]
 
         
@@ -58,7 +62,11 @@ def check_views_interaction(
         prev_view = client.views.get(user_id)
 
         if prev_view:
-            await disable_all_items(prev_view)
+            if hasattr(prev_view, "message"):
+                try:
+                    await prev_view.message.edit(view=None)
+                except (Forbidden, HTTPException):
+                    pass
             del client.views[user_id]
 
         

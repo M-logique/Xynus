@@ -25,7 +25,7 @@ from discord.ui.item import Item
 from bot import __name__ as name
 from bot import __version__ as version
 
-from ..templates.embeds import ErrorEmbed
+from ..templates.embeds import ErrorEmbed, MappingInfoEmbed
 from ..utils.config import Emojis
 from ..utils.database import KVDatabase
 from ..utils.functions import chunker as _chunker
@@ -38,7 +38,8 @@ from .cooldowns import ticket_edit_cooldown
 from .embeds import CommandsEmbed, DynamicHelpEmbed
 from .exceptions import CustomOnCooldownException
 from .modals import (AddFieldModal, EditAuthorModal, EditEmbedModal,
-                     EditFieldModal, EditFooterModal, LoadMessageModal)
+                     EditFieldModal, EditFooterModal, LoadMessageModal, 
+                     CommandEditModal, TriggerEditModal)
 
 if TYPE_CHECKING:
 
@@ -63,7 +64,7 @@ class BaseView(_View):
 
         super().__init__(timeout=timeout)
         
-        self.message = None
+        self.message: Optional[Message] = None
 
     
     async def on_timeout(self) -> None:
@@ -535,7 +536,7 @@ class ConfirmationView(_View):
         await interaction.response.edit_message(
             view=None,
             embed=Embed(
-                color=self.ctx.bot.color,
+                color=self.ctx.client.color,
                 description="**Action cancelled!**"
             )
         )
@@ -549,7 +550,7 @@ class ConfirmationView(_View):
                 view=None,
                 embed=Embed(
                     description="**Action cancelled (Timeout)**",
-                    color=self.ctx.bot.color
+                    color=self.ctx.client.color
                 )
             )
 
@@ -653,6 +654,170 @@ class WhisperModalView(_View):
         await interaction.response.edit_message()
         return False
 
+class MappingView(BaseView):
+
+    def __init__(
+        self,
+        author: User,
+        command: str,
+        trigger: str,
+        created_at: int,
+        mappings: commands.Command
+    ):
+        super().__init__(timeout=120)
+        
+        self.mappings = mappings
+        self.created_at = created_at
+        self.command = command
+        self.trigger = trigger
+        self.author = author
+
+        # self.add_item(self.edit_mapping)
+        self.add_item(DeleteButton())
+
+
+    @button(
+        emoji=emojis.get("pencil"),
+        custom_id="edit_mapping"
+    )
+    async def edit_mapping(
+        self,
+        inter: Interaction,
+        btn: Button
+    ):
+        await inter.response.edit_message(
+            view=MappingEditView(
+                self.command, 
+                self.trigger,
+                self,
+                self.author,
+            )
+        )
+
+class MappingEditView(BaseView):
+
+    def __init__(
+        self,
+        command: str,
+        trigger: str,
+        prev_view: "MappingView",
+        author: User,
+    ):
+        self.author = author
+        self.prev_view = prev_view
+        self.command = command
+        self.trigger = trigger
+
+        super().__init__(timeout=120)
+    
+    @select(
+        options=[
+            SelectOption(
+                label="Edit command",
+                emoji=emojis.get("pencil"),
+                value="command"
+            ),
+            SelectOption(
+                label="Edit trigger",
+                emoji=emojis.get("pencil"),
+                value="trigger"
+            )
+        ]
+    )
+    async def edit_select(
+        self,
+        inter: Interaction,
+        select: Select
+    ):
+
+        if select.values[0] == "trigger":
+            modal = TriggerEditModal(
+                self
+            )
+        
+        elif select.values[0] == "command":
+            modal = CommandEditModal(
+                self
+            )
+        
+        await inter.response.send_modal(modal)
+        
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if not interaction.user.id == self.author.id:
+            await interaction.response.edit_message()
+            return False
+        return True
+
+    @button(
+        label="Save",
+        emoji="\N{FLOPPY DISK}",
+        style=ButtonStyle.green,
+        disabled=True
+    )
+    async def save_button(
+        self,
+        inter: Interaction,
+        btn: Button
+    ):
+        del inter.client._cmd_mapping_cache[inter.user.id][self.prev_view.trigger]
+        self.prev_view.trigger = self.trigger
+        self.prev_view.command = self.command
+        inter.client._cmd_mapping_cache[inter.user.id][self.trigger] = self.command
+
+        query = """
+        UPDATE mappings
+        SET 
+            trigger = $1,
+            command = $2
+        """
+
+        await inter.client.pool.execute(
+            query, 
+            encrypt(self.trigger),
+            encrypt(self.command)
+        )
+
+        return await inter.response.edit_message(
+            view=self.prev_view,
+            embed=MappingInfoEmbed(
+                inter,
+                command=self.command,
+                trigger=self.trigger,
+                created_at=self.prev_view.created_at,
+            )
+        )
+
+    def update_save_button(self):
+        self.save_button.disabled = (
+                self.command == self.prev_view.command
+                and self.trigger == self.prev_view.trigger
+            )
+
+    @button(
+        label="Go back",
+        style=ButtonStyle.secondary
+    )
+    async def go_back(
+        self,
+        inter: Interaction,
+        btn: Button
+    ):
+
+        return await inter.response.edit_message(
+            view=self.prev_view,
+            embed=MappingInfoEmbed(
+                inter,
+                self.prev_view.trigger,
+                self.prev_view.command,
+                self.prev_view.created_at
+            )
+        )
+
+
+    async def on_timeout(self) -> None:
+        return await _disable_all_items(self)
+
 class ViewWithDeleteButton(BaseView):
     """A view that includes a DeleteButton."""
 
@@ -705,7 +870,7 @@ class SendToView(BaseView):
             ChannelType.public_thread,
         ],
     )
-    async def pick_a_channel(self, interaction: Interaction, select: ChannelSelect["SendToView"]):
+    async def pick_a_channel(self, interaction: Interaction, select: ChannelSelect):
         await interaction.response.defer(ephemeral=True)
         channel = select.values[0]
         if not isinstance(interaction.user, Member) or not interaction.guild:

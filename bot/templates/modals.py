@@ -1,4 +1,4 @@
-from re import compile, fullmatch, match
+from re import compile, match
 from time import time
 from typing import TYPE_CHECKING, Self
 
@@ -6,12 +6,14 @@ from discord import (Color, Embed, Forbidden, HTTPException, Interaction,
                      Message, NotFound, TextStyle, User)
 from discord.ui import Modal, TextInput, View
 
+from .embeds import MappingInfoEmbed
 from ..utils.config import Emojis
-from ..utils.functions import to_boolean
+from ..utils.functions import to_boolean, find_command_name
 from .exceptions import InvalidModalField
 
 if TYPE_CHECKING:
     from .views import EmbedEditor
+    from .views import MappingEditView
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -61,7 +63,123 @@ class PaginationIndexModal(Modal):
 
         self.view.index = value -1
         return await self.view.edit_page(interaction)
-    
+
+
+class CommandEditModal(Modal, title="Edit the command"):
+    command = TextInput(
+        label="Command text",
+        placeholder="Your shitty command goes here",
+        max_length=4000,
+        style=TextStyle.paragraph,
+        required=True
+    )
+
+    def __init__(self, prev_view: "MappingEditView", /):
+        self.prev_view = prev_view
+        self.command.default = prev_view.command
+
+        super().__init__(timeout=120)
+
+    async def on_submit(self, interaction: Interaction) -> None:
+        command_name = find_command_name(self.command.value)
+
+        
+        if not interaction.client.get_command(command_name):
+            return await interaction.response.send_message(
+                f"Cannot map `{command_name[:20:]}` as it is not a valid command.",
+                ephemeral=True
+            )
+        
+        
+        self.prev_view.command = self.command.value
+        self.prev_view.update_save_button()
+        await interaction.response.edit_message(
+            view=self.prev_view,
+            embed=MappingInfoEmbed(
+                interaction,
+                self.prev_view.trigger,
+                self.command.value,
+                self.prev_view.prev_view.created_at,
+            )
+        )
+
+
+class TriggerEditModal(Modal, title="Edit the trigger"):
+    trigger = TextInput(
+        label="trigger text",
+        placeholder="Your shitty trigger goes here",
+        max_length=20,
+        required=True
+    )
+
+    def __init__(self, prev_view: "MappingEditView", /):
+        self.prev_view = prev_view
+        self.trigger.default = prev_view.trigger
+        
+        super().__init__(timeout=120)
+
+    async def on_submit(self, interaction: Interaction) -> None:
+        trigger = self.trigger.value.lower().replace(" ", "")
+
+        sticked_command = interaction.client.get_command(trigger)
+        original_message = None
+        if sticked_command:
+            
+            if sticked_command.name == self.prev_view.prev_view.mappings.name:
+                return await interaction.response.send_message(
+                    f"🤔 **for some reasons, you can't add {trigger!r} as your trigger!**",
+                    ephemeral=True
+                )
+            
+            
+            else:
+                from .views import ConfirmationView
+                from .embeds import ConfirmationEmbed
+
+                view = ConfirmationView(
+                    interaction, 
+                    owner_id=interaction.user.id,
+                    timeout=30
+                )
+
+                text = (
+                    "**You are using one of the bot's commands as a trigger. "
+                    "This will cause the original command to stop working. "
+                    "Are you sure you want to use this trigger?**"
+                )
+
+                original_message = interaction.message
+
+                await interaction.response.send_message(
+                    embed=ConfirmationEmbed(
+                        text,
+                        30
+                    ),
+                    view=view,
+                    ephemeral=True
+                )
+
+                await view.wait()
+                if not view.value: return
+        
+            
+        
+        self.prev_view.trigger = self.trigger.value
+        self.prev_view.update_save_button()
+        await (
+            interaction.response.edit_message 
+            if not original_message and not interaction.response.is_done()
+            else original_message.edit
+        )(
+            view=self.prev_view,
+            embed=MappingInfoEmbed(
+                interaction,
+                trigger,
+                self.prev_view.command,
+                self.prev_view.prev_view.created_at,
+            )
+        )
+
 
 class WhisperModal(Modal):
 

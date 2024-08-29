@@ -319,3 +319,13 @@ def to_boolean(argument: str) -> bool:
         return False
     else:
         raise InvalidModalField(f'{argument} is not a valid boolean value.')
+
+def match_and_remove_prefix(prefixes: _Sequence[str], text: str, /) -> _Optional[str]:
+    prefix_pattern = _re.compile(r"^(?:" + "|".join(_re.escape(prefix) for prefix in prefixes) + ")")
+    rematch = prefix_pattern.match(text)
+    
+    if rematch:
+        content_without_prefix = text[rematch.end():]
+        return content_without_prefix
+
+find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower()

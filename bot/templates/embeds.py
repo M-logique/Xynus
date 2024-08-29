@@ -1,5 +1,5 @@
 from datetime import datetime as _datetime
-from typing import Any as _Any
+from typing import TYPE_CHECKING
 from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
@@ -10,6 +10,9 @@ from discord import Interaction as _Interaction
 from discord.ext import commands as _commands
 
 from ..utils.functions import format_command_params, split_camel_case
+
+if TYPE_CHECKING:
+    from .context import XynusContext
 
 
 class SimpleEmbed(_Embed):
@@ -197,4 +200,32 @@ class ConfirmationEmbed(_Embed):
                 's' if timeout > 1 else ''
             )
         )
+
+class MappingInfoEmbed(_Embed):
+    
+    def __init__(
+            self,
+            ctx: "XynusContext",
+            trigger: str,
+            command: str,
+            created_at: int
+    ):
         
+        super().__init__(
+            title=f"Mapping: {trigger.capitalize()}",
+            description=(
+                f"🔰 **Author**: {ctx.user.mention}\n"
+                f"❔ **Trigger**: `{trigger}`\n"
+                f"⌚️ **Created at**: <t:{created_at}:F>"
+            ),
+            color=ctx.client.color
+        )
+        self.add_field(
+            inline=False,
+            name="🧪 Command:",
+            value=f"```\n{command}\n```"[:1024:]
+        )
+        self.set_footer(
+            text=f"Invoked by {ctx.user.display_name}",
+            icon_url=ctx.user.display_avatar
+        )

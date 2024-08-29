@@ -1,8 +1,8 @@
 from time import time
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohttp import ClientSession
-from discord import Embed, Interaction, Member, Role, app_commands, utils
+from discord import Embed, Interaction, Member, Role, app_commands, utils, AllowedMentions
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
@@ -10,18 +10,19 @@ from bot.core import _settings
 from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import XynusCog
-from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed
+from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed, MappingInfoEmbed
 from bot.templates.flags import EmbedFlags
 from bot.templates.modals import WhisperModal
 from bot.templates.views import (DynamicHelpView, EmbedEditor, EmojisView,
-                                 Pagination, WhisperModalView, WhisperView)
+                                 Pagination, WhisperModalView, WhisperView,
+                                 MappingView)
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
-from bot.utils.functions import (chunker, extract_emoji_info_from_text,
-                                 filter_prefix, get_all_commands,
+from bot.utils.functions import (chunker, decrypt, encrypt,
+                                 extract_emoji_info_from_text, filter_prefix,
+                                 get_all_commands,
                                  remove_duplicates_preserve_order,
-                                 suggest_similar_strings, encrypt, decrypt)
-from typing import Dict, Any
+                                 suggest_similar_strings, find_command_name)
 
 if TYPE_CHECKING:
     from bot.templates.context import XynusContext
@@ -832,16 +833,27 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         *,
         command: str
     ):
-        trigger = trigger.lower().replace(" ", "")
+        trigger = trigger.lower().replace(" ", "")[:20:]
+        command_name = find_command_name(command)
+
+        
+        if not ctx.client.get_command(command_name):
+            return await ctx.reply(
+                f"Cannot map `{command_name[:20:]}` as it is not a valid command.",
+                allowed_mentions=AllowedMentions.none()
+            )
+        
+
         user_cached_maps: Dict[str, Any] = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
             keys=[ctx.author.id, trigger],
             create_missing=True
         )
 
+
         if len(tuple(user_cached_maps.items())) > 30:
             embed = Embed(
-                description=f"Sorry but you cannot add more than 30 mappings",
+                description=f"Sorry but you can't add more than 30 mappings",
                 color=ctx.client.color
             )
             return await ctx.reply(
@@ -849,8 +861,13 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
                 delete_button=True
             )
 
-        if ctx.client.get_command(trigger):
-            if not await ctx.confirm(
+        sticked_command = ctx.client.get_command(trigger)
+
+        if sticked_command:
+            if sticked_command.name == self.mappings.name:
+                return await ctx.reply(f"🤔 **for some reasons, you can't add {trigger!r} as your trigger!**")
+            
+            elif not await ctx.confirm(
                 "**You are using one of the bot's commands as a trigger. "
                 "This will cause the original command to stop working. "
                 "Are you sure you want to use this trigger?**"
@@ -888,9 +905,9 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         ctx.client._cmd_mapping_cache[ctx.author.id][trigger.lower()] = command
 
         if existant:
-            description = f"Custom command mapping **{trigger!r}** updated."
+            description = f"mapping **{trigger!r}** updated."
         else:
-            description = f"Added custom command mapping **{trigger!r}**"
+            description = f"Added mapping **{trigger!r}**"
         
         embed = Embed(
             description=description,
@@ -967,7 +984,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         description="Displays an some information about your mapping"
     )
     @app_commands.describe(
-        trigger="The trigger phrase that activates the custom command."
+        trigger="The trigger phrase that activates mapping."
     )
     async def mappings_view(
         self, 
@@ -1009,30 +1026,26 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         created_at = record["created_at"]
         command = decrypt(record["command"])
 
-        embed = Embed(
-            title=f"Mapping: {trigger.capitalize()}",
-            description=(
-                f"🔰 **Author**: {ctx.author.mention}\n"
-                f"❔ **Trigger**: `{trigger}`\n"
-                f"⌚️ **Created at**: <t:{created_at}:F>"
-            )
+        embed = MappingInfoEmbed(
+            ctx,
+            trigger,
+            command,
+            created_at
         )
-        embed.add_field(
-            inline=False,
-            name="🧪 Command:",
-            value=command[:1024:]
-        )
-        embed.set_footer(
-            text=f"Invoked by {ctx.author.display_name}",
-            icon_url=ctx.author.display_avatar
+
+
+        view = MappingView(
+            ctx.author, 
+            command, 
+            trigger, 
+            created_at, 
+            self.mappings
         )
 
         await ctx.reply(
             embed=embed,
-            delete_button=True
+            view=view
         )
-        
-
 
 
     @mappings.command(
@@ -1041,7 +1054,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         description="Delete an existing mapping"
     )
     @app_commands.describe(
-        trigger="The trigger phrase that activates the custom command."
+        trigger="The trigger phrase that activates the mapping."
     )
     async def mappings_delete(
         self,
@@ -1059,7 +1072,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         if not data.get(trigger):
             embed = Embed(
-                description=f"Didn't find any custom command mapping!",
+                description=f"Didn't find any mapping!",
                 color=ctx.client.color
             )
             return await ctx.reply(
@@ -1084,12 +1097,66 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         await ctx.reply(
             embed=Embed(
-                description=f"Removed **{trigger!r}** from your custom command mappings",
+                description=f"Removed **{trigger!r}** from your mappings",
                 color=ctx.client.color
             ),
             delete_button=True
         )
 
+    @mappings.command(
+        name="clear",
+        aliases=["removeall"],
+        description="Delete all of your mappings"
+    )
+    async def mappings_clear(
+        self,
+        ctx: "XynusContext",
+    ):
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id],
+            True
+        ).get(ctx.author.id)
+
+
+        if not data:
+            embed = Embed(
+                description=f"You don't have any mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        s, th = ('', 'this') if len(data.keys()) == 1 else ('s', 'these')
+        
+        if not await ctx.confirm(
+            "**Are you sure you want to remove "
+            f"{th} {len(data.keys())} mapping{s}?**"
+        ): 
+            return
+        
+
+        query = """
+        DELETE FROM mappings
+        WHERE
+            user_id = $1;
+        """
+        await ctx.pool.execute(query, ctx.author.id)
+
+        # To prevent the Runtime error here,
+        # I made a copy of mappings to iterate
+        del ctx.client._cmd_mapping_cache[ctx.author.id]
+
+        await ctx.reply(
+            embed=Embed(
+                description=f"Removed all of your mappings",
+                color=ctx.client.color
+            ),
+            delete_button=True
+        )
 
     # Embed builder from HideoutManager
     # https://github.com/DuckBot-Discord/duck-hideout-manager-bot/

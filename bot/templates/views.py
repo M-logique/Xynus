@@ -759,7 +759,9 @@ class MappingEditView(BaseView):
         inter: Interaction,
         btn: Button
     ):
+        
         del inter.client._cmd_mapping_cache[inter.user.id][self.prev_view.trigger]
+        prev_trigger = self.prev_view.trigger
         self.prev_view.trigger = self.trigger
         self.prev_view.command = self.command
         inter.client._cmd_mapping_cache[inter.user.id][self.trigger] = self.command
@@ -769,12 +771,18 @@ class MappingEditView(BaseView):
         SET 
             trigger = $1,
             command = $2
+        WHERE 
+            user_id = $3
+        AND 
+            trigger = $4;
         """
 
         await inter.client.pool.execute(
             query, 
             encrypt(self.trigger),
-            encrypt(self.command)
+            encrypt(self.command),
+            inter.user.id,
+            prev_trigger
         )
 
         return await inter.response.edit_message(

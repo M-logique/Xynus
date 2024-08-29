@@ -671,7 +671,6 @@ class MappingView(BaseView):
         self.trigger = trigger
         self.author = author
 
-        # self.add_item(self.edit_mapping)
         self.add_item(DeleteButton())
 
 
@@ -782,7 +781,7 @@ class MappingEditView(BaseView):
             encrypt(self.trigger),
             encrypt(self.command),
             inter.user.id,
-            prev_trigger
+            encrypt(prev_trigger)
         )
 
         return await inter.response.edit_message(

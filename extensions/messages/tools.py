@@ -1042,7 +1042,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             self.mappings
         )
 
-        await ctx.reply(
+        view.message = await ctx.reply(
             embed=embed,
             view=view
         )

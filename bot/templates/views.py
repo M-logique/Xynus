@@ -759,6 +759,23 @@ class MappingEditView(BaseView):
         btn: Button
     ):
         
+        user_cached_maps: Dict[str, Any] = inter.client.db._traverse_dict(
+            inter.client._cmd_mapping_cache,
+            keys=[inter.user.id],
+            create_missing=True
+        ).get(inter.user.id)
+
+        if len(tuple(user_cached_maps.items())) > 30 and \
+                not inter.client.is_owner(inter.user):
+            embed = Embed(
+                description=f"Sorry but you can't add more than 30 mappings",
+                color=inter.client.color
+            )
+            return await inter.response.send_message(
+                embed=embed,
+                delete_button=True
+            )
+
         del inter.client._cmd_mapping_cache[inter.user.id][self.prev_view.trigger]
         prev_trigger = self.prev_view.trigger
         self.prev_view.trigger = self.trigger

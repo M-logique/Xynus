@@ -851,7 +851,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         )
 
 
-        if len(tuple(user_cached_maps.items())) > 30:
+        if len(tuple(user_cached_maps.items())) > 30 and \
+                not ctx.client.is_owner(ctx.user):
             embed = Embed(
                 description=f"Sorry but you can't add more than 30 mappings",
                 color=ctx.client.color

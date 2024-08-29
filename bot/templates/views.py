@@ -22,7 +22,6 @@ from discord.ui import View as _View
 from discord.ui import button, select
 from discord.ui.item import Item
 
-from bot import __name__ as name
 from bot import __version__ as version
 
 from ..templates.embeds import ErrorEmbed, MappingInfoEmbed
@@ -337,7 +336,7 @@ class DynamicHelpView(Pagination):
         )
 
         main_embed.set_author(
-            name=f"{name} - V{version}"
+            name=f"Xynus - V{version}"
         )
 
         new_cogs = {}

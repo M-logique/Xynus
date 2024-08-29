@@ -28,9 +28,14 @@ from ..handlers.errorhandler import XynusExceptionManager
 from ..templates.context import XynusContext
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import KVDatabase
-from ..utils.functions import decrypt, list_all_dirs, search_directory, match_and_remove_prefix, find_command_name
+from ..utils.functions import (decrypt, find_command_args,
+                               find_command_args_list, find_command_name,
+                               list_all_dirs, match_and_remove_prefix,
+                               search_directory)
 from .logger import XynusLogger as _Logger
 from .settings import settings
+
+from string import Template
 
 if TYPE_CHECKING:
 
@@ -307,8 +312,35 @@ class Xynus(_commands.AutoShardedBot):
         if prefixless_content:
             command_name = find_command_name(prefixless_content)
 
+            
+
             cached_command: _Optional[str] = cached_mapping.get(command_name, None)
             if cached_command:
+                listed_args = find_command_args_list(
+                    message.content, 
+                    prefixes, 
+                    command_name
+                )
+                
+                args = find_command_args(
+                    message.content,
+                    prefixes,
+                    command_name
+                )
+
+                kwargs = {
+                    "args": args,
+                }
+
+                for i, arg in enumerate(listed_args):
+                    kwargs[f"arg{i+1}"] = arg
+
+                print(kwargs)
+
+                cached_command = Template(cached_command).safe_substitute(
+                    **kwargs
+                )
+
                 message.content = prefixes[0]+cached_command
         
         

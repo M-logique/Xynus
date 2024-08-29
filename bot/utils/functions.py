@@ -14,6 +14,7 @@ from typing import Iterator as _Iterator
 from typing import Optional as _Optional
 from typing import Sequence as _Sequence
 from typing import Union as _Union
+from typing import List as _List
 
 from discord import Forbidden as _Forbidden
 from discord import HTTPException as _HTTPException
@@ -328,4 +329,19 @@ def match_and_remove_prefix(prefixes: _Sequence[str], text: str, /) -> _Optional
         content_without_prefix = text[rematch.end():]
         return content_without_prefix
 
+
 find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower()
+
+def find_command_args_list(text: str, prefixes: _Sequence[str], command_name: str, /) -> _List[str]:
+    text = match_and_remove_prefix(prefixes, text) or text
+    if text.lower().startswith(command_name.lower()):
+        text = text[len(command_name):].strip()
+    args_list = _re.split(r'\s+', text)
+    return args_list if args_list != [''] else []
+
+def find_command_args(text: str, prefixes: _Sequence[str], command_name: str, /) -> str:
+    
+    text = match_and_remove_prefix(prefixes, text) or text
+    if text.lower().startswith(command_name.lower()):
+        text = text[len(command_name):].strip()
+    return text

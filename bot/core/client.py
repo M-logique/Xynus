@@ -2,11 +2,13 @@ from datetime import datetime as _datetime
 from logging import getLogger
 from os import makedirs as _makedirs
 from os import path
+from re import compile, escape, split
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
+from typing import Dict
 from typing import Dict as _Dict
 from typing import Optional as _Optional
-from typing import Tuple, Type, TypeVar, Dict, Any
+from typing import Sequence, Tuple, Type, TypeVar
 from typing import Union as _Union
 
 from aiohttp import ClientSession
@@ -16,23 +18,19 @@ from discord import ActivityType as _ActivityType
 from discord import Color as _Color
 from discord import Forbidden as _Forbidden
 from discord import HTTPException as _HTTPException
-from discord import Status
+from discord import Interaction, Status
 from discord import utils as _utils
 from discord.ext import commands as _commands
 from discord.utils import cached_property as _cached_property
-from discord.ext.commands.view import StringView
 
 from .. import __version__ as version
 from ..handlers.errorhandler import XynusExceptionManager
 from ..templates.context import XynusContext
 from ..templates.embeds import ErrorEmbed
 from ..utils.database import KVDatabase
-from ..utils.functions import list_all_dirs, search_directory, decrypt
+from ..utils.functions import decrypt, list_all_dirs, search_directory, match_and_remove_prefix, find_command_name
 from .logger import XynusLogger as _Logger
 from .settings import settings
-from discord import Interaction
-from re import compile, escape, split
-from typing import Sequence
 
 if TYPE_CHECKING:
 
@@ -92,7 +90,9 @@ class Xynus(_commands.AutoShardedBot):
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
         
-        self.logger = _Logger("xynus.main")
+        log_level = args.level or 20 # Defaults to logging.INFO
+
+        self.logger = _Logger("xynus.main", level=log_level)
 
         self.views: _Dict[_View] = dict()
         self._cmd_mapping_cache: Dict[str, Any] = dict()
@@ -302,13 +302,10 @@ class Xynus(_commands.AutoShardedBot):
         if not prefixes:
             return await super().get_context(message, cls=new_cls)
         
-        prefix_pattern = compile(r"^(?:" + "|".join(escape(prefix) for prefix in prefixes) + ")")
-
-        rematch = prefix_pattern.match(message.content)
-        if rematch:
-            message_content = message.content[rematch.end():]
-            command_name = split(r'\s+', message_content.strip(), 1)[0].lower()
-
+        prefixless_content = match_and_remove_prefix(prefixes, message.content)
+        
+        if prefixless_content:
+            command_name = find_command_name(prefixless_content)
 
             cached_command: _Optional[str] = cached_mapping.get(command_name, None)
             if cached_command:

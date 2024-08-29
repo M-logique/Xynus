@@ -1,15 +1,16 @@
 import logging as _logging
 
 from colorlog import ColoredFormatter as _ColoredFormatter
+from typing import Union
 
 __all__: (
     "XynusLogger"
 )
 
 class XynusLogger(_logging.Logger):
-    def __init__(self, name):
+    def __init__(self, name: str, level: Union[int, str]):
         super().__init__(name)
-        self.setLevel(_logging.INFO)
+        self.setLevel(level)
 
         self.formatter = _ColoredFormatter(
             '\033[90m[%(asctime)s]%(reset)s | \033[35m%(name)s%(reset)s | %(log_color)s%(levelname)s%(reset)s | %(message)s',

@@ -123,8 +123,21 @@ class TriggerEditModal(Modal, title="Edit the trigger"):
 
         sticked_command = interaction.client.get_command(trigger)
         original_message = None
+
+        data = interaction.client.db._traverse_dict(
+            interaction.client._cmd_mapping_cache,
+            [interaction.user.id, trigger],
+            True
+        ).get(trigger, None)
+
+        if data:
+            return await interaction.response.send_message(
+                f"You cannot use the trigger {trigger!r} as it already exists",
+                ephemeral=True
+            )
+
         if sticked_command:
-            
+
             if sticked_command.name == self.prev_view.prev_view.mappings.name:
                 return await interaction.response.send_message(
                     f"🤔 **for some reasons, you can't add {trigger!r} as your trigger!**",

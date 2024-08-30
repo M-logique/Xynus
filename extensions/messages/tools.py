@@ -1274,7 +1274,6 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
                 description=f"Didn't find any mapping!",
                 color=ctx.client.color
             )
-            await ctx.pool.release(conn)
             return await ctx.reply(
                 embed=embed,
                 delete_button=True
@@ -1340,7 +1339,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @app_commands.describe(
         share_code="The share code that generated using 'mappings share' command"
     )
-    async def mapping_import(
+    async def mappings_import(
         self,
         ctx: "XynusContext",
         share_code: str
@@ -1364,6 +1363,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             return await ctx.reply("Didn't find any mapping")
         
         trigger = decrypt(record["trigger"])
+        command = decrypt(record["command"])
 
         data = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
@@ -1408,7 +1408,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         await ctx.pool.release(conn)
         
         decrypted_trigger = decrypt(encrypted_trigger)
-        ctx.client._cmd_mapping_cache[ctx.author.id][decrypted_trigger] = data.get(trigger)
+        ctx.client._cmd_mapping_cache[ctx.author.id][decrypted_trigger] = command
+        print(ctx.client._cmd_mapping_cache)
         
         await ctx.reply(
             f"**Added {decrypted_trigger!r} to your mappings**",

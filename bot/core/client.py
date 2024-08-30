@@ -194,7 +194,7 @@ class Xynus(_commands.AutoShardedBot):
 
         else: 
             err = str(error)
-            # await self.exceptions.add_error(error=error, ctx=ctx, log_error=False)
+            await self.exceptions.add_error(error=error, ctx=ctx, log_error=False)
 
             text = err[:300:] # A Large error text is not good to display.
 

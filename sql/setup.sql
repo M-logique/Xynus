@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS mappings(
     guild_id BIGINT,
     trigger TEXT NOT NULL,
     command TEXT NOT NULL,
-    created_at BIGINT NOT NULL
+    created_at BIGINT NOT NULL,
+    share_code TEXT
 );
 
 

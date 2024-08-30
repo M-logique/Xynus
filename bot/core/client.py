@@ -12,7 +12,7 @@ from typing import Sequence, Tuple, Type, TypeVar
 from typing import Union as _Union
 
 from aiohttp import ClientSession
-from asyncpg import Connection, connect
+from asyncpg import Pool, create_pool
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
 from discord import Color as _Color
@@ -366,7 +366,7 @@ class Xynus(_commands.AutoShardedBot):
 
         try:
             start_time = time()
-            self.pool: Connection = await connect(
+            self.pool: Pool = await create_pool(
                 dsn=settings.DSN,
                 host=settings.HOST,
                 password=settings.PASSWORD,
@@ -377,7 +377,7 @@ class Xynus(_commands.AutoShardedBot):
 
             taked_time = round((time() - start_time) * 1000 , 3)
 
-            self.db = KVDatabase(self.pool)
+            self.db = KVDatabase(await self.pool.acquire())
             await self.db._setup()
             
             setup_query = self._load_query("setup.sql")

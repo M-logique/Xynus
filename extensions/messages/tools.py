@@ -895,13 +895,14 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             SET command = EXCLUDED.command,
                 created_at = EXCLUDED.created_at;
         """
-        await ctx.pool.fetch(
-            query, 
-            ctx.author.id, 
-            encrypt(trigger), 
-            encrypt(command),
-            int(time())
-        )
+        async with ctx.pool.acquire() as conn:
+            await conn.fetch(
+                query, 
+                ctx.author.id, 
+                encrypt(trigger), 
+                encrypt(command),
+                int(time())
+            )
 
         ctx.client._cmd_mapping_cache[ctx.author.id][trigger.lower()] = command
 
@@ -1021,8 +1022,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         AND 
             user_id = $2;
         """
-
-        record = await ctx.pool.fetchrow(query, encrypt(trigger), ctx.author.id)
+        async with ctx.pool.acquire() as conn:
+            record = await conn.fetchrow(query, encrypt(trigger), ctx.author.id)
 
         created_at = record["created_at"]
         command = decrypt(record["command"])
@@ -1088,7 +1089,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         WHERE user_id = $1
         AND trigger = $2;
         """
-        await ctx.pool.execute(query, ctx.author.id, encrypt(trigger))
+        async with ctx.pool.acquire() as conn:
+            await conn.execute(query, ctx.author.id, encrypt(trigger))
 
         # To prevent the Runtime error here,
         # I made a copy of mappings to iterate
@@ -1145,7 +1147,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         WHERE
             user_id = $1;
         """
-        await ctx.pool.execute(query, ctx.author.id)
+        async with ctx.pool.acquire() as conn:
+            await conn.execute(query, ctx.author.id)
 
         # To prevent the Runtime error here,
         # I made a copy of mappings to iterate

@@ -6,7 +6,7 @@ from typing import (TYPE_CHECKING, Any, Callable, Dict, Optional, Self,
                     Sequence, Union)
 
 from aiohttp import ClientSession
-from asyncpg import Connection
+from asyncpg import Pool
 from discord import (Button, ButtonStyle, ChannelType, Embed, Interaction,
                      Member, Message, NotFound, Object, PermissionOverwrite,
                      User)
@@ -793,13 +793,14 @@ class MappingEditView(BaseView):
             trigger = $4;
         """
 
-        await inter.client.pool.execute(
-            query, 
-            encrypt(self.trigger),
-            encrypt(self.command),
-            inter.user.id,
-            encrypt(prev_trigger)
-        )
+        async with inter.client.pool.acquire() as conn:
+            await conn.execute(
+                query, 
+                encrypt(self.trigger),
+                encrypt(self.command),
+                inter.user.id,
+                encrypt(prev_trigger)
+            )
 
         return await inter.response.edit_message(
             view=self.prev_view,
@@ -1226,7 +1227,7 @@ class TicketOpenView(BaseView):
 
             uuid = self.values[0]
 
-            pool: Connection = inter.client.pool
+            pool: Pool = inter.client.pool
             db: KVDatabase = inter.client.db
 
             data: Optional[Dict[str, Any]] = await db.get(f"{inter.guild.id}.settings.tickets.{uuid}")
@@ -1311,8 +1312,8 @@ class TicketOpenView(BaseView):
             )
 
 
-
-            await pool.fetch(query, *args)
+            async with pool.acquire() as conn:
+                await conn.execute(query, *args)
             await inter.edit_original_response(
                 content=f"Created your ticket {ticket.mention}",
                 view=None
@@ -1354,12 +1355,12 @@ class TicketOpenView(BaseView):
             """
     
 
-
-            results = await interaction.client.pool.fetch(
-                query, 
-                interaction.user.id, 
-                interaction.guild.id
-            )
+            async with interaction.client.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query, 
+                    interaction.user.id, 
+                    interaction.guild.id
+                )
 
 
             if results:
@@ -1521,7 +1522,7 @@ class PersistentViews:
                 client: commands.Bot
         ):
             self.client = client
-            self.pool: Connection = client.pool
+            self.pool: Pool = client.pool
 
             super().__init__(
                 timeout=None
@@ -1569,12 +1570,12 @@ class PersistentViews:
             """
     
 
-
-            results = await self.pool.fetch(
-                query, 
-                interaction.user.id, 
-                interaction.guild.id
-            )
+            async with self.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query, 
+                    interaction.user.id, 
+                    interaction.guild.id
+                )
 
 
             if results:
@@ -1593,7 +1594,7 @@ class PersistentViews:
                 client: commands.Bot
         ):
             self.client = client
-            self.pool: Connection = client.pool
+            self.pool: Pool = client.pool
 
             super().__init__(
                 timeout=None
@@ -1623,11 +1624,11 @@ class PersistentViews:
             WHERE channel_id = $1
             AND is_open = TRUE;
             """
-
-            results = await self.pool.fetch(
-                query,
-                ticket.id
-            )
+            async with self.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query,
+                    ticket.id
+                )
 
 
             result = results[0]
@@ -1692,10 +1693,11 @@ class PersistentViews:
             )
 
             query = self.client._load_query("set_ticket.sql")
-            await self.pool.fetch(
-                query,
-                *args
-            )
+            async with self.pool.acquire() as conn:
+                await conn.execute(
+                    query,
+                    *args
+                )
 
 
             await inter.edit_original_response(
@@ -1725,10 +1727,11 @@ class PersistentViews:
             AND is_open = TRUE;
             """
 
-            results = await self.pool.fetch(
-                query,
-                interaction.channel.id
-            )
+            async with self.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query,
+                    interaction.channel.id
+                )
 
             if not results:
                 await interaction.edit_original_response(
@@ -1769,7 +1772,7 @@ class PersistentViews:
                 client: commands.Bot
         ):
             self.client = client
-            self.pool: Connection = self.client.pool
+            self.pool: Pool = self.client.pool
 
             super().__init__(
                 timeout=None
@@ -1813,11 +1816,12 @@ class PersistentViews:
             AND guild_id = $2;
             """
 
-            await self.pool.fetch(
-                query,
-                inter.channel_id,
-                inter.guild_id
-            )
+            async with self.pool.acquire() as conn:
+                await conn.execute(
+                    query,
+                    inter.channel_id,
+                    inter.guild_id
+                )
 
 
             
@@ -1845,11 +1849,11 @@ class PersistentViews:
             WHERE channel_id = $1
             AND is_open = FALSE;
             """
-
-            results = await self.pool.fetch(
-                query,
-                ticket.id
-            )
+            async with self.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query,
+                    ticket.id
+                )
 
 
             result = results[0]
@@ -1928,10 +1932,11 @@ class PersistentViews:
             )
 
             query = self.client._load_query("set_ticket.sql")
-            await self.pool.fetch(
-                query,
-                *args
-            )
+            async with self.pool.acquire() as conn:
+                await conn.execute(
+                    query,
+                    *args
+                )
 
             self.message = inter.message
             await _disable_all_items(self)
@@ -1957,11 +1962,12 @@ class PersistentViews:
             WHERE channel_id = $1
             AND is_open = FALSE;
             """
-
-            results = await self.pool.fetch(
-                query,
-                interaction.channel_id
-            )
+            
+            async with self.pool.acquire() as conn:
+                results = await conn.fetch(
+                    query,
+                    interaction.channel_id
+                )
 
             if not interaction.channel.permissions_for(interaction.guild.me).manage_channels:
 

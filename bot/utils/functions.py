@@ -25,6 +25,8 @@ from discord.ext.commands import Group as _Group
 from discord.ui import View
 from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
+from os import urandom as _urandom
+from binascii import hexlify as _hexlify
 
 from ..templates.exceptions import InvalidModalField
 
@@ -345,3 +347,5 @@ def find_command_args(text: str, prefixes: _Sequence[str], command_name: str, /)
     if text.lower().startswith(command_name.lower()):
         text = text[len(command_name):].strip()
     return text
+
+random_string = lambda length, /: _hexlify(_urandom(length)).decode()[:length]

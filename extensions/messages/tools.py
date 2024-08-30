@@ -22,7 +22,10 @@ from bot.utils.functions import (chunker, decrypt, encrypt,
                                  extract_emoji_info_from_text, filter_prefix,
                                  get_all_commands,
                                  remove_duplicates_preserve_order,
-                                 suggest_similar_strings, find_command_name)
+                                 suggest_similar_strings, find_command_name,
+                                 random_string)
+from hashlib import md5
+
 
 if TYPE_CHECKING:
     from bot.templates.context import XynusContext
@@ -797,7 +800,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
     @commands.hybrid_group(
             name="mappings",
-            aliases=["maps", "mapping"]
+            aliases=["maps", "mapping"],
+            description="Displays commands related to mappings"
     )
     @commands.cooldown(1, 5, commands.BucketType.member)
     @check_views
@@ -923,7 +927,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
     @mappings.command(
         name="list",
-        aliases=["show"],
+        aliases=["show", "ls", "lst"],
         description="Displays a list of your mappings"
     )
     @app_commands.describe(
@@ -956,7 +960,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
                 color=ctx.client.color,
                 description="\n".join(
                     [
-                        f"`[{i+1}]`: **`{key}`** - `{value[:20:]}"+f"{'...`' if len(value) > 20 else '`'}"
+                        f"`[{(10*index)+i+1}]`: **`{key}`** - `{value[:20:]}"+f"{'...`' if len(value) > 20 else '`'}"
 
                         for i, (key, value) in enumerate(chunks[index])
                     ]
@@ -1161,6 +1165,257 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             ),
             delete_button=True
         )
+
+
+    @mappings.command(
+        name="copy",
+        aliases=["cp"],
+        description="to copy one of your mappings"
+    )
+    @app_commands.describe(
+        trigger="The trigger of the mapping that you want to copy",
+        new_trigger="The new trigger of the copied mapping"
+    )
+    async def mappings_copy(
+        self,
+        ctx: "XynusContext",
+        trigger: str,
+        new_trigger: str
+    ):
+        trigger = trigger.lower()
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id ,trigger],
+            True
+        )
+
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        if data.get(new_trigger):
+            return await ctx.reply(
+                f"The trigger {new_trigger[:10:]!r} already exists",
+                allowed_mentions=AllowedMentions.none()
+            )
+
+        query = """
+        INSERT INTO mappings (
+            trigger,
+            command,
+            user_id,
+            created_at
+        )
+        SELECT 
+            $1, 
+            command, 
+            user_id, 
+            $2
+        FROM mappings
+        WHERE 
+            trigger = $3
+        AND 
+            user_id = $4;
+        """
+
+        async with ctx.pool.acquire() as conn:
+            await conn.execute(
+                query,
+                encrypt(new_trigger),
+                int(time()),
+                encrypt(trigger),
+                ctx.author.id
+            )
+        
+        ctx.client._cmd_mapping_cache[ctx.author.id][new_trigger] = data.get(trigger)
+
+        embed = Embed(
+            color=ctx.client.color,
+            description=f"Created a copy of {trigger!r} with the trigger **{new_trigger!r}**."
+        )
+        embed.set_footer(
+            text=f"Invoked by {ctx.author.display_name}",
+            icon_url=ctx.author.display_name
+        )
+
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )
+
+    @mappings.command(
+        name="share",
+        description="to create a share code of your mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger of the mapping that you want to share"
+    )
+    async def mappings_share(
+        self,
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id ,trigger],
+            True
+        )
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any mapping!",
+                color=ctx.client.color
+            )
+            await ctx.pool.release(conn)
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        conn = await ctx.pool.acquire()
+        encrypted_trigger = encrypt(trigger)
+
+        selection_query = """
+        SELECT id, share_code FROM mappings
+        WHERE 
+            user_id = $1
+        AND   
+            trigger = $2;
+        """
+
+
+        result = await conn.fetchrow(
+            selection_query,
+            ctx.author.id,
+            encrypted_trigger
+            
+        )
+        
+        mapping_id = result["id"]
+        share_code = result["share_code"]
+        if not share_code:
+            share_code = md5(str(mapping_id).encode()).hexdigest()
+
+            insertion_query = """
+            UPDATE mappings
+            SET 
+                share_code = $1
+            WHERE
+                user_id = $2
+            AND 
+                trigger = $3
+            """
+
+            await conn.execute(
+                insertion_query,
+                share_code,
+                ctx.author.id,
+                encrypted_trigger
+            )
+
+        await ctx.pool.release(conn)
+
+
+        await ctx.reply(
+            content=(
+                f"**Here is a share code of the mapping {trigger!r}:** `{share_code}` \n"
+                f"💡 *__Tip:__ Use `mappings import {share_code}` to add this mapping to your mappings*"
+            ),
+            allowed_mentions=AllowedMentions.none()
+        )
+        
+
+    @mappings.command(
+        name="import",
+        description="to import a mapping by using its share code"
+    )
+    @app_commands.describe(
+        share_code="The share code that generated using 'mappings share' command"
+    )
+    async def mapping_import(
+        self,
+        ctx: "XynusContext",
+        share_code: str
+    ):
+        
+        conn = await ctx.pool.acquire()
+
+        selection_query = """
+        SELECT * 
+        FROM mappings
+        WHERE share_code = $1;
+        """
+
+        record = await conn.fetchrow(
+            selection_query,
+            share_code
+        )
+
+        if not record:
+            await ctx.pool.release(conn)
+            return await ctx.reply("Didn't find any mapping")
+        
+        trigger = decrypt(record["trigger"])
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id ,trigger],
+            True
+        )
+
+        encrypted_trigger =  encrypt(trigger+random_string(5)) if data.get(trigger) else encrypt(trigger)
+
+
+        if not await ctx.confirm(
+            f"**Are you sure you want to import the mapping {trigger!r}?**"
+        ):
+            return
+        
+        insertion_query = """
+        INSERT INTO mappings(
+            user_id,
+            trigger,
+            command,
+            created_at
+        )
+        SELECT 
+            $1,
+            $2,
+            command,
+            $3
+        
+        FROM mappings 
+        WHERE 
+            share_code = $4; 
+        """
+
+        await conn.execute(
+            insertion_query,
+            ctx.author.id,
+            encrypted_trigger,
+            int(time()),
+            share_code
+        )
+
+        await ctx.pool.release(conn)
+        
+        decrypted_trigger = decrypt(encrypted_trigger)
+        ctx.client._cmd_mapping_cache[ctx.author.id][decrypted_trigger] = data.get(trigger)
+        
+        await ctx.reply(
+            f"**Added {decrypted_trigger!r} to your mappings**",
+            allowed_mentions=AllowedMentions.none()
+        )
+
+        
 
     # Embed builder from HideoutManager
     # https://github.com/DuckBot-Discord/duck-hideout-manager-bot/

@@ -336,14 +336,22 @@ find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower(
 
 def find_command_args_list(text: str, prefixes: _Sequence[str], command_name: str, /) -> _List[str]:
     text = match_and_remove_prefix(prefixes, text) or text
+    text = text.strip()
+    
     if text.lower().startswith(command_name.lower()):
         text = text[len(command_name):].strip()
-    args_list = _re.split(r'\s+', text)
-    return args_list if args_list != [''] else []
+    
+    args_list = _re.findall(r'\'[^\']*\'|\"[^\"]*\"|\S+', text)
+    
+    args_list = [arg[1:-1] if (arg.startswith("'") and arg.endswith("'")) or 
+                 (arg.startswith('"') and arg.endswith('"')) else arg for arg in args_list]
+    
+    return args_list
 
 def find_command_args(text: str, prefixes: _Sequence[str], command_name: str, /) -> str:
     
     text = match_and_remove_prefix(prefixes, text) or text
+    text = text.strip()
     if text.lower().startswith(command_name.lower()):
         text = text[len(command_name):].strip()
     return text

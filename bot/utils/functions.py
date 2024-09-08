@@ -121,7 +121,7 @@ def load_yaml(path: str) -> dict:
     return data
 
 def extract_emoji_info_from_text(text: str) -> _Union[_Dict, _Any]:
-    pattern = r"<:(\w+):(\d+)>"
+    pattern = r"<a?:(\w+):(\d+)>"
     matches = _re.findall(pattern, text)
     
     extracted_info = []
@@ -332,7 +332,6 @@ def match_and_remove_prefix(prefixes: _Sequence[str], text: str, /) -> _Optional
         return content_without_prefix
 
 
-find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower()
 
 def find_command_args_list(text: str, prefixes: _Sequence[str], command_name: str, /) -> _List[str]:
     text = match_and_remove_prefix(prefixes, text) or text
@@ -356,4 +355,17 @@ def find_command_args(text: str, prefixes: _Sequence[str], command_name: str, /)
         text = text[len(command_name):].strip()
     return text
 
+find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower()
+
 random_string = lambda length, /: _hexlify(_urandom(length)).decode()[:length]
+
+tuple_append_item = lambda t, item, /: t + (item, )
+
+tuple_remove_item = lambda t, value, /, by_index=False: (
+    x for i, x in enumerate(t) 
+    if (
+        i != value 
+        if by_index 
+        else x != value
+    )
+)

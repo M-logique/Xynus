@@ -196,7 +196,7 @@ class ConfirmationEmbed(_Embed):
 
         self.set_footer(
             text=(
-                f'Click on either "Yea" or "No" to confirm. You have {timeout} second'
+                f'Click on either "Yes" or "No" to confirm. You have {timeout} second'
                 's' if timeout > 1 else ''
             )
         )

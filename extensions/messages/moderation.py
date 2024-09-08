@@ -265,6 +265,9 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
         aliases=["until"]
 
     )
+    @commands.has_permissions(
+        manage_messages = True
+    )
     @app_commands.describe(
         message_id = "The ID of the message you want to delete before it."
     )
@@ -300,6 +303,9 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
         with_app_command=True
 
     )
+    @commands.has_permissions(
+        manage_messages = True
+    )
     @app_commands.describe(
         amount = "Enter a number between 2-1000 to bulk delete messages."
     )
@@ -329,6 +335,9 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
         with_app_command=True,
         aliases=["cmds"]
     )
+    @commands.has_permissions(
+        manage_messages = True
+    )
     @app_commands.describe(
         prefix = "The prefix of the commands you want to delete."
     )
@@ -354,6 +363,9 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
         name="user",
         description="Deletes the bulk of messages that sent by a user.",
         with_app_command=True
+    )
+    @commands.has_permissions(
+        manage_messages = True
     )
     @app_commands.describe(
         user = "Please enter the user.",
@@ -385,6 +397,9 @@ class Moderation(XynusCog, emoji=_emojis.get("shield")):
         name="embeds",
         description="Deletes the bulk of messages that has an embed.",
         with_app_command=True
+    )
+    @commands.has_permissions(
+        manage_messages = True
     )
     @app_commands.describe(
         amount = "Enter a number between 2-1000 to bulk delete messages.",

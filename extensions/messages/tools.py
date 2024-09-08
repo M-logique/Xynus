@@ -6,7 +6,6 @@ from discord import Embed, Interaction, Member, Role, app_commands, utils, Allow
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
-from bot.core import _settings
 from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import XynusCog
@@ -23,7 +22,7 @@ from bot.utils.functions import (chunker, decrypt, encrypt,
                                  get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings, find_command_name,
-                                 random_string)
+                                 random_string, tuple_append_item, tuple_remove_item)
 from hashlib import md5
 
 
@@ -648,7 +647,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         ephemeral: Optional[bool] = False
     ):
         
-        prefix = filter_prefix(_settings.PREFIX)
+        prefix = ["/"]
 
         if cmd:
             bot_commands = {}
@@ -694,8 +693,6 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         for command in cog_commands: commands+=[*command]
 
 
-
-        prefix = filter_prefix(_settings.PREFIX)
 
 
         dynamic_help_view = DynamicHelpView(
@@ -1416,7 +1413,210 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             allowed_mentions=AllowedMentions.none()
         )
 
+    # TODO: Describe these shits.
+
+    @commands.hybrid_group(
+        name="prefixes",
+        aliases=["prefix"],
+        fallback="list",
+        description="Retrives a list of available prefixes"
+    )
+    async def prefixes( 
+        self,
+        ctx: "XynusContext"
+    ):
+
+        guild_prefixes = (ctx.me.mention, )
+        cached_prefixes = ctx.client._prefix_cache.get(ctx.author.id, tuple())
+        user_prefixes = (ctx.me.mention, ) + cached_prefixes
+        if ctx.guild:
+            guild_prefixes+=ctx.client._prefix_cache.get(ctx.guild.id, tuple())
         
+
+
+        embed = Embed(
+            color=ctx.client.color
+        )
+        
+        embed.set_author(
+            icon_url=ctx.author.display_avatar,
+            name=f"{ctx.author.display_name}"
+        )
+        
+        if len(user_prefixes) > 1:
+            embed.add_field(
+                name=f"{ctx.author.display_name}'s prefixes",
+                value="\n".join(
+                    (
+                        f"{i+1}. {prefix}"
+
+                        for i, prefix in enumerate(user_prefixes)
+                    )
+                ),
+                inline=False
+            )
+        
+        if len(guild_prefixes) > 1:
+            embed.add_field(
+                name=f"{ctx.guild.name}'s prefixes",
+                value="\n".join(
+                    (
+                        f"{i+1}. {prefix}"
+
+                        for i, prefix in enumerate(guild_prefixes)
+                    )
+                ),
+                inline=False
+            )
+        
+        if len(guild_prefixes) == 1 and len(user_prefixes) == 1:
+            embed.description = "\n".join(
+                (
+                    f"{i+1}. {prefix}"
+
+                    for i, prefix in enumerate(ctx.client._settings.PREFIX)
+                )
+            )
+
+
+
+        await ctx.reply(embed=embed)
+        
+
+    @prefixes.command(
+        name="add",
+    )
+    async def prefixes_add(
+        self,
+        ctx: "XynusContext",
+        prefix: str
+    ):
+        prefix = prefix[:5:].strip().lower()
+
+        cached_prefixes = ctx.client.db._traverse_dict(
+            ctx.client._prefix_cache,
+            [ctx.author.id],
+            True
+        ).get(ctx.author.id, tuple())
+
+        if prefix in cached_prefixes:
+            return await ctx.reply("This prefix is already in your prefixes.")
+        
+        query = """
+        INSERT INTO prefixes(
+            user_id,
+            prefixes
+        )
+        VALUES(
+            $1,
+            ARRAY[$2]::TEXT[]
+        )
+        ON CONFLICT (user_id)
+        DO UPDATE 
+        SET prefixes = ARRAY_CAT(
+            prefixes.prefixes, 
+            ARRAY[EXCLUDED.prefixes]::TEXT[]
+        );
+        """
+        if not cached_prefixes:
+            for default_prefix in ctx.client._settings.PREFIX:
+                await ctx.pool.execute(
+                    query,
+                    ctx.author.id,
+                    encrypt(prefix)
+                )
+                ctx.client._prefix_cache[ctx.author.id] = cached_prefixes + (default_prefix, )
+                cached_prefixes = ctx.client.db._traverse_dict(
+                    ctx.client._prefix_cache,
+                    [ctx.author.id],
+                    True
+                ).get(ctx.author.id, tuple())
+
+        encrypted_prefix = encrypt(prefix)
+
+        await ctx.pool.execute(
+            query,
+            ctx.author.id,
+            encrypted_prefix
+        )
+
+        ctx.client._prefix_cache[ctx.author.id] = cached_prefixes + (prefix, )
+        await ctx.reply(
+            f"Added {prefix} to your prefixes",
+            allowed_mentions=AllowedMentions.none()
+        )
+        
+    @prefixes.command(
+        name="set"
+    )
+    async def prefixes_set(
+        self,
+        ctx: "XynusContext",
+        prefix: str
+    ):
+        prefix = prefix[:5:].strip().lower()
+
+        if not await ctx.confirm(
+            "Are you sure you want to set your prefix to"
+            f" {prefix}? your previouse prefixes will be deleted"
+            " permanently."
+        ): return
+
+        query = """
+        INSERT INTO prefixes(
+            user_id,
+            prefixes
+        )
+        VALUES(
+            $1,
+            ARRAY[$2]::TEXT[]
+        )
+        ON CONFLICT (user_id)
+        DO UPDATE 
+        SET prefixes = ARRAY[EXCLUDED.prefixes]::TEXT[];
+        """
+
+        encrypted_prefix = encrypt(prefix)
+
+        await ctx.pool.execute(
+            query,
+            ctx.author.id,
+            encrypted_prefix
+        )
+
+        ctx.client._prefix_cache[ctx.author.id] = (prefix, )
+        await ctx.reply(
+            f"Now your prefix is {prefix!r}.",
+            allowed_mentions=AllowedMentions.none()
+        )
+
+    @prefixes.command(
+        name="reset"
+    )
+    async def prefixes_reset(
+        self,
+        ctx: "XynusContext",
+    ):
+        if not await ctx.confirm(
+            "Are you sure? this will delete all"
+            " of your prefixes"
+        ): return
+
+
+        query = """
+        DELETE FROM prefixes
+        WHERE 
+            user_id = $1;
+        """
+
+        await ctx.pool.execute(
+            query,
+            ctx.author.id
+        )
+
+        del ctx.client._prefix_cache[ctx.author.id]
+
+        await ctx.reply("Your prefixes has been reset.")
 
     # Embed builder from HideoutManager
     # https://github.com/DuckBot-Discord/duck-hideout-manager-bot/

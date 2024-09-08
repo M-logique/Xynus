@@ -2,18 +2,16 @@ from datetime import datetime as _datetime
 from logging import getLogger
 from os import makedirs as _makedirs
 from os import path
-from re import compile, escape, split
 from time import time
 from typing import TYPE_CHECKING, Any
 from typing import Dict
-from typing import Dict as _Dict
 from typing import Optional as _Optional
 from typing import Sequence, Tuple, Type, TypeVar
 from typing import Union as _Union
 
 from aiohttp import ClientSession
-from asyncpg import Pool, create_pool
-from discord import Activity as _Activity
+from asyncpg import Pool, create_pool, Connection
+from discord import Activity as _Activity, Message
 from discord import ActivityType as _ActivityType
 from discord import Color as _Color
 from discord import Forbidden as _Forbidden
@@ -32,6 +30,7 @@ from ..utils.functions import (decrypt, find_command_args,
                                find_command_args_list, find_command_name,
                                list_all_dirs, match_and_remove_prefix,
                                search_directory)
+import collections.abc
 from .logger import XynusLogger as _Logger
 from .settings import settings
 
@@ -69,7 +68,9 @@ class Xynus(_commands.AutoShardedBot):
         "context_class",
         "_start_time",
         "_cmd_mapping_cache",
-        "db"
+        "_prefix_cache",
+        "_settings",
+        "db",
     )
 
     def __init__(
@@ -91,7 +92,7 @@ class Xynus(_commands.AutoShardedBot):
         """
 
 
-
+        self._settings = settings
         owner_ids = settings.OWNERS
         prefix = settings.PREFIX
         
@@ -99,8 +100,9 @@ class Xynus(_commands.AutoShardedBot):
 
         self.logger = _Logger("xynus.main", level=log_level)
 
-        self.views: _Dict[_View] = dict()
+        self.views: Dict[_View] = dict()
         self._cmd_mapping_cache: Dict[str, Any] = dict()
+        self._prefix_cache: Dict[str, Any] = dict()
         
 
         self.error_webhook_url: _Optional[str] = settings.ERROR_WEBHOOK
@@ -275,6 +277,49 @@ class Xynus(_commands.AutoShardedBot):
             root_logger=self.logger.root
         )
     
+    async def get_prefix(self, message: Message) -> _Union[_utils.List[str], str]: # type: ignore
+        """|coro|
+
+        Retrieves the prefix the bot is listening to
+        with the message as a context.
+
+        .. versionchanged:: 2.0
+
+            ``message`` parameter is now positional-only.
+
+        Parameters
+        -----------
+        message: :class:`discord.Message`
+            The message context to get the prefix of.
+
+        Returns
+        --------
+        Union[List[:class:`str`], :class:`str`]
+            A list of prefixes or a single prefix that the bot is
+            listening for.
+        """
+
+        prefix = ret = self._get_cached_prefixes(message)
+
+        if callable(prefix):
+            # self will be a Bot or AutoShardedBot
+            ret = await _utils.maybe_coroutine(prefix, self, message)  # type: ignore
+
+        if not isinstance(ret, str):
+            try:
+                ret = list(ret)  # type: ignore
+            except TypeError:
+                # It's possible that a generator raised this exception.  Don't
+                # replace it with our own error if that's the case.
+                if isinstance(ret, collections.abc.Iterable):
+                    raise
+
+                raise TypeError(
+                    "command_prefix must be plain string, iterable of strings, or callable "
+                    f"returning either of these, not {ret.__class__.__name__}"
+                )
+
+        return ret
 
 
     async def get_context(
@@ -388,10 +433,19 @@ class Xynus(_commands.AutoShardedBot):
             log = getLogger("xynus.db")
             log.info(f"Connected to the database in {taked_time}ms")
 
-            rcount = await self._update_mapping_cache()
+            async with self.pool.acquire() as conn:
 
-            if rcount:
-                log.info(f"Cached {rcount!r} custom command mapping.")
+                mappings_count, prefixes_count = (
+                    await self._update_mapping_cache(conn),
+                    await self._update_prefix_cache(conn)
+                )
+
+                if mappings_count:
+                    log.info(f"Cached {mappings_count!r} custom command mapping.")
+                
+                if prefixes_count:
+                    log.info(f"Cached {prefixes_count} custom prefix.")
+            
 
         except Exception as err:
             self.logger.error(f"Failed to connect to the database {err}")
@@ -443,8 +497,57 @@ class Xynus(_commands.AutoShardedBot):
 
         return _Color.from_rgb(*settings.MAIN_COLOR)
     
+    def _get_cached_prefixes(self, origin: Message, /): # type: ignore
+        """
+        Retrives cached prefixes by using the origin message.
+        """
 
-    async def _update_mapping_cache(self) -> int:
+        guild_id = origin.guild.id if origin.guild else None
+        user_id = origin.author.id
+
+        guild_prefixes = self._prefix_cache.get(guild_id)
+        user_prefixes = self._prefix_cache.get(user_id)
+
+        if not guild_prefixes and not user_prefixes:
+            return self.command_prefix
+
+        prefixes = tuple()
+        
+        if guild_prefixes:
+            prefixes += (*guild_prefixes, )
+
+        if user_prefixes:
+            prefixes += (*user_prefixes, )
+        
+        return _commands.when_mentioned_or(*prefixes)
+
+
+
+    async def _update_prefix_cache(self, conn: Connection, /) -> int:
+        """|coro|
+        Updates prefix cache from the old data stored in database.
+
+        :return: Cached records count.
+        :rtype: int
+        """
+
+        query = """
+        SELECT * FROM prefixes;
+        """
+
+        records = await conn.fetch(query)
+        
+        for record in records:
+            key = record["guild_id"] or record["user_id"]
+            prefixes = map(lambda r: decrypt(r), record["prefixes"])
+            self._prefix_cache[key] = tuple(prefixes)
+        
+        return len(records)
+
+            
+
+
+    async def _update_mapping_cache(self, conn: Connection, /) -> int:
         """|coro|
         Updates mapping cache from the old data stored in database.
 
@@ -455,7 +558,8 @@ class Xynus(_commands.AutoShardedBot):
         SELECT * FROM mappings;
         """
 
-        records = await self.pool.fetch(query)
+        records = await conn.fetch(query)
+
         for record in records:
             trigger = decrypt(record["trigger"])
             command = decrypt(record["command"])

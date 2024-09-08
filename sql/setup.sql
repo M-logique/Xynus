@@ -20,6 +20,12 @@ CREATE TABLE IF NOT EXISTS mappings(
     share_code TEXT
 );
 
+CREATE TABLE IF NOT EXISTS prefixes(
+    id SERIAL PRIMARY KEY,
+    user_id BIGINT UNIQUE,
+    guild_id BIGINT UNIQUE,
+    prefixes TEXT[] NOT NULL
+);
 
 DO $$
 BEGIN
@@ -48,9 +54,19 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM pg_constraint
-        WHERE conname = 'guild_user_not_null'
+        WHERE conname = 'mappings_guild_user_not_null'
     ) THEN
         ALTER TABLE mappings
-        ADD CONSTRAINT guild_user_not_null CHECK (guild_id IS NOT NULL OR user_id IS NOT NULL);
+        ADD CONSTRAINT mappings_guild_user_not_null CHECK (guild_id IS NOT NULL OR user_id IS NOT NULL);
     END IF;
+
+    IF NOT EXISTS(
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'prefixes_guild_user_not_null'
+    ) THEN
+        ALTER TABLE  prefixes 
+        ADD CONSTRAINT prefixes_guild_user_not_null CHECK (guild_id is NOT NULL OR user_id IS NOT NULL);
+    END IF;
+
 END $$;

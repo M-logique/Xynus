@@ -32,7 +32,7 @@ def check_views(
             if hasattr(prev_view, "message"):
                 try:
                     await prev_view.message.edit(view=None)
-                except (Forbidden, HTTPException):
+                except (Forbidden, HTTPException, AttributeError):
                     pass
             del client.views[user_id]
 
@@ -63,7 +63,7 @@ def check_views_interaction(
             if hasattr(prev_view, "message"):
                 try:
                     await prev_view.message.edit(view=None)
-                except (Forbidden, HTTPException):
+                except (Forbidden, HTTPException, AttributeError):
                     pass
             del client.views[user_id]
 

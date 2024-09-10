@@ -1494,7 +1494,111 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         ctx.client.set_user_view(ctx.author.id, view)
         await view.navegate(ephemeral=ephemeral)
-    
+
+    @mappings_group.command(
+        name="set",
+        description="Add or edit a custom command mapping",
+        aliases=["add", "edit"]
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that will activate the custom command.",
+        command="The command to be executed when the trigger is used."
+    )
+    async def mappings_guild_set(
+        self,
+        ctx: "XynusContext",
+        trigger: str,
+        *,
+        command: str
+    ):
+        trigger = trigger.lower().replace(" ", "")[:20:]
+        command_name = find_command_name(command)
+
+        
+        if not ctx.client.get_command(command_name):
+            return await ctx.reply(
+                f"Cannot map `{command_name[:20:]}` as it is not a valid command.",
+                allowed_mentions=AllowedMentions.none()
+            )
+        
+
+        user_cached_maps: Dict[str, Any] = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            keys=[ctx.guild.id, trigger],
+            create_missing=True
+        )
+
+
+        if len(tuple(user_cached_maps.items())) > 30 and \
+                not ctx.client.is_owner(ctx.user):
+            embed = Embed(
+                description=f"Sorry but you can't add more than 30 mappings",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+
+        sticked_command = ctx.client.get_command(trigger)
+
+        if sticked_command:
+            if sticked_command.name == self.mappings.name:
+                return await ctx.reply(f"🤔 **for some reasons, you can't add {trigger!r} as your trigger!**")
+            
+            elif not await ctx.confirm(
+                "**You are using one of the bot's commands as a trigger. "
+                "This will cause the original command to stop working. "
+                "Are you sure you want to use this trigger?**"
+            ):
+                return
+
+        existant = bool(user_cached_maps.get(trigger))
+
+        query = """
+        INSERT INTO mappings(
+            guild_id,
+            trigger,
+            command,
+            created_at
+        )
+        VALUES (
+            $1,
+            $2,
+            $3,
+            $4
+        )
+        ON CONFLICT (guild_id, trigger)
+        DO UPDATE
+            SET command = EXCLUDED.command,
+                created_at = EXCLUDED.created_at;
+        """
+        async with ctx.pool.acquire() as conn:
+            await conn.fetch(
+                query, 
+                ctx.guild.id, 
+                encrypt(trigger), 
+                encrypt(command),
+                int(time())
+            )
+
+        ctx.client._cmd_mapping_cache[ctx.guild.id][trigger.lower()] = command
+
+        if existant:
+            description = f"mapping **{trigger!r}** updated."
+        else:
+            description = f"Added mapping **{trigger!r}**"
+        
+        embed = Embed(
+            description=description,
+            color=ctx.client.color
+        )
+
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )    
+
     @mappings_group.command(
         name="delete",
         aliases=["remove", "del"],

@@ -688,7 +688,7 @@ class MappingImportSelectView(BaseView):
 
             data = inter.client.db._traverse_dict(
                 inter.client._cmd_mapping_cache,
-                [inter.user.id ,trigger],
+                [inter.guild.id ,trigger],
                 True
             )
 

@@ -1504,6 +1504,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         trigger="The trigger phrase that will activate the custom command.",
         command="The command to be executed when the trigger is used."
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_set(
         self,
         ctx: "XynusContext",
@@ -1607,6 +1611,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @app_commands.describe(
         trigger="The trigger phrase that activates the mapping."
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_delete(
         self,
         ctx: "XynusContext",
@@ -1660,6 +1668,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         aliases=["removeall"],
         description="Delete all of guild mappings"
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_clear(
         self,
         ctx: "XynusContext",
@@ -1721,6 +1733,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         trigger="The trigger of the mapping that you want to copy",
         new_trigger="The new trigger of the copied mapping"
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_copy(
         self,
         ctx: "XynusContext",
@@ -1804,6 +1820,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @app_commands.describe(
         trigger="The trigger of the mapping that you want to share"
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_share(
         self,
         ctx: "XynusContext",
@@ -1895,6 +1915,10 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @app_commands.describe(
         share_code="The share code that generated using 'mappings share' command"
     )
+    @commands.has_permissions(
+        manage_guild=True
+    )
+    @app_commands.guild_only()
     async def mappings_guild_import(
         self,
         ctx: "XynusContext",

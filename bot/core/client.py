@@ -192,7 +192,10 @@ class Xynus(_commands.AutoShardedBot):
             text = "This command is only for the owner."
         
         elif isinstance(error, _commands.BadArgument):
-            text = error.message
+            if hasattr(error, "message"):
+                text = error.message
+            else:
+                text = err
 
         else: 
             err = str(error)

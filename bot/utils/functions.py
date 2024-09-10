@@ -361,7 +361,7 @@ random_string = lambda length, /: _hexlify(_urandom(length)).decode()[:length]
 
 tuple_append_item = lambda t, item, /: t + (item, )
 
-tuple_remove_item = lambda t, value, /, by_index=False: (
+tuple_remove_item = lambda t, value, /, by_index=False: tuple(
     x for i, x in enumerate(t) 
     if (
         i != value 

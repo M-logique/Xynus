@@ -852,7 +852,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
 
         if len(tuple(user_cached_maps.items())) > 30 and \
-                not ctx.client.is_owner(ctx.user):
+                not await ctx.client.is_owner(ctx.user):
             embed = Embed(
                 description=f"Sorry but you can't add more than 30 mappings",
                 color=ctx.client.color
@@ -2010,6 +2010,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             allowed_mentions=AllowedMentions.none()
         )
     
+    # TODO: fix maps info for guilds.
+    # TODO: add reload command that reloads cache.
     # TODO: ادد دادن یچیزی برای کامند هلپ که اگر زد "کمک مپینگ" کامند مپ شده پیدا کنه بده بهش
 
     @commands.hybrid_group(

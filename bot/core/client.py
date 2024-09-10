@@ -345,9 +345,10 @@ class Xynus(_commands.AutoShardedBot):
         if isinstance(message, Interaction):
             return await super().get_context(message, cls=new_cls)
         
-        cached_mapping: Dict[str, Any] = self._cmd_mapping_cache.get(message.author.id, {})
-        if not cached_mapping and message.guild:
-            cached_mapping = self._cmd_mapping_cache.get(message.guild.id, {})
+        guild_cached_mapping: Dict[str, Any] = {}
+        user_cached_mapping: Dict[str, Any] = self._cmd_mapping_cache.get(message.author.id, {})
+        if message.guild:
+            guild_cached_mapping = self._cmd_mapping_cache.get(message.guild.id, {})
 
 
         prefixes = await self.get_prefix(message)
@@ -362,7 +363,9 @@ class Xynus(_commands.AutoShardedBot):
 
             
 
-            cached_command: _Optional[str] = cached_mapping.get(command_name, None)
+            cached_command: _Optional[str] = user_cached_mapping.get(command_name, None) \
+                or guild_cached_mapping.get(command_name, None)
+            
             if cached_command:
                 listed_args = find_command_args_list(
                     message.content, 

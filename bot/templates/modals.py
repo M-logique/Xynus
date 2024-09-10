@@ -1,6 +1,6 @@
 from re import compile, match
 from time import time
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, Literal
 
 from discord import (Color, Embed, Forbidden, HTTPException, Interaction,
                      Message, NotFound, TextStyle, User)
@@ -8,7 +8,7 @@ from discord.ui import Modal, TextInput, View
 
 from .embeds import MappingInfoEmbed
 from ..utils.config import Emojis
-from ..utils.functions import to_boolean, find_command_name
+from ..utils.functions import to_boolean, find_command_name, encrypt, decrypt
 from .exceptions import InvalidModalField
 
 if TYPE_CHECKING:
@@ -627,4 +627,110 @@ class LoadMessageModal(EmbedBaseModal, title="Loading embed from its url"):
         await original_message.edit(embed=self.parent_view.current_embed, view=self.parent_view)
         await interaction.edit_original_response(content="Loaded!")
 
+class CustomTriggerModal(Modal, title=""):
+    
+    new_trigger = TextInput(
+        label="New trigger",
+        max_length=20,
+        required=True
+    )
+
+    def __init__(
+        self,
+        trigger: str,
+        share_code: str,
+        command: str,
+        import_type: Literal["user", "guild"]
+    ) -> None:
         
+        self.command     = command
+        self.share_code  = share_code
+        self.import_type = import_type
+
+
+        self.new_trigger.default = trigger
+
+        super().__init__(
+            timeout=None
+        )
+    
+    async def on_submit(self, interaction: Interaction) -> None:
+
+        if self.import_type == "user":
+            target_id = interaction.user.id
+            query = """
+            INSERT INTO mappings(
+                user_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+        elif self.import_type == "guild":
+            target_id = interaction.guild.id
+            query = """
+            INSERT INTO mappings(
+                guild_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+            
+
+        new_trigger = self.new_trigger.value
+        new_trigger = new_trigger.lower().replace(" ", "")[:20:]
+        
+
+        data = interaction.client.db._traverse_dict(
+            interaction.client._cmd_mapping_cache,
+            [target_id ,new_trigger],
+            True
+        )
+
+        
+        if data.get(new_trigger):
+            return await interaction.response.send_message(
+                f"The trigger {new_trigger[:10:]!r} already exists",
+                ephemeral=True
+            )
+
+        async with interaction.client.pool.acquire() as conn:
+            await conn.fetch(
+                query,
+                target_id,
+                encrypt(new_trigger),
+                int(time()),
+                self.share_code
+            )
+        
+        interaction.client._cmd_mapping_cache[target_id][new_trigger] = self.command
+
+        embed = Embed(
+            color=interaction.client.color,
+            description=f"**Added {new_trigger!r} to your mappings**"
+        )
+
+        await interaction.response.edit_message(
+            view=None,
+            embed=embed,
+            content=None
+        )

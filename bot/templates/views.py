@@ -24,13 +24,13 @@ from discord.ui.item import Item
 
 from bot import __version__ as version
 
-from ..templates.embeds import ErrorEmbed, MappingInfoEmbed
+from .embeds import ErrorEmbed, MappingInfoEmbed
 from ..utils.config import Emojis
 from ..utils.database import KVDatabase
 from ..utils.functions import chunker as _chunker
 from ..utils.functions import decrypt
 from ..utils.functions import disable_all_items as _disable_all_items
-from ..utils.functions import encrypt
+from ..utils.functions import encrypt, random_string
 from ..utils.functions import get_all_commands as _get_all_commands
 from .buttons import DeleteButton, EditWithModalButton
 from .cooldowns import ticket_edit_cooldown
@@ -38,7 +38,10 @@ from .embeds import CommandsEmbed, DynamicHelpEmbed
 from .exceptions import CustomOnCooldownException
 from .modals import (AddFieldModal, EditAuthorModal, EditEmbedModal,
                      EditFieldModal, EditFooterModal, LoadMessageModal, 
-                     CommandEditModal, TriggerEditModal)
+                     CommandEditModal, TriggerEditModal, CustomTriggerModal)
+from time import time
+from typing import Literal
+
 
 if TYPE_CHECKING:
 
@@ -311,20 +314,448 @@ class EmojisView(Pagination):
                             )
                         )
 
+class DuplicatedMappingView(BaseView):
     
+    def __init__(
+            self,
+            trigger: str,
+            command: str,
+            share_code: str,
+            author: User,
+            import_type: Literal["guild", "user"]
+        ):
 
 
+
+        self.command     = command
+        self.trigger     = trigger
+        self.share_code  = share_code
+        self.author      = author
+        self.import_type = import_type
+
+        super().__init__(timeout=120)
+
+    @select(
+        options=[
+            SelectOption(
+                label="Create a new unique one",
+                description="will create a new one with random characters appended.",
+                value="unique"
+            ),
+            SelectOption(
+                label="import with a new custom name",
+                description="will create a new one with the name you specify.",
+                value="specified"
+            )
+        ]
+    )
+    async def maps_select(
+        self,
+        inter: Interaction,
+        select: Select
+    ):
+        value       = select.values[0]
+        trigger     = self.trigger
+        command     = self.command
+        share_code  = self.share_code
+        import_type = self.import_type
+
+        if value == "specified":
+            return await inter.response.send_modal(
+                CustomTriggerModal(
+                    trigger,
+                    share_code,
+                    command,
+                    import_type
+                )
+            )
+
+        encrypted_trigger = encrypt(trigger+random_string(5))
+        if import_type == "user":
+            target_id = inter.user.id
+            insertion_query = """
+            INSERT INTO mappings(
+                user_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+        elif import_type == "guild":
+            target_id = inter.guild.id
+            insertion_query = """
+            INSERT INTO mappings(
+                guild_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+
+        async with inter.client.pool.acquire() as conn:
+            await conn.fetch(
+                insertion_query,
+                target_id,
+                encrypted_trigger,
+                int(time()),
+                share_code
+            )
+        
+        decrypted_trigger = decrypt(encrypted_trigger)
+        inter.client._cmd_mapping_cache[target_id][decrypted_trigger] = command
+
+
+        embed = Embed(
+            color=inter.client.color,
+            description=f"**Added {decrypted_trigger!r} to your mappings**"
+        )
+
+        await inter.response.edit_message(
+            content=None,
+            view=None,
+            embed=embed
+        )
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        
+        if not interaction.user.id == self.author.id:
+            await interaction.response.edit_message()
+            return False
+        
+        return True
+
+
+class MappingsImportView(BaseView):
+    def __init__(
+            self,
+            share_code: str,
+    ):
+        
+        self.share_code = share_code
+        super().__init__(timeout=120)
+
+    @button(
+        label="Import",
+        style=ButtonStyle.secondary,
+        emoji="\N{INBOX TRAY}",
+        custom_id="import-mapping"
+    )
+    async def import_button(
+        self,
+        inter: Interaction,
+        btn: Button
+    ):
+        share_code = self.share_code
+
+        if inter.guild and inter.user.guild_permissions.manage_guild:
+            return await inter.response.send_message(
+                content="Select an import method",
+                view=MappingImportSelectView(
+                    share_code
+                ),
+                ephemeral=True
+            )
+        
+        conn = await inter.client.pool.acquire()
+
+        selection_query = """
+        SELECT * 
+        FROM mappings
+        WHERE share_code = $1;
+        """
+
+        record = await conn.fetchrow(
+            selection_query,
+            share_code
+        )
+
+        if not record:
+            await inter.client.pool.release(conn)
+            return await inter.response.send_message(
+                "Didn't find any mapping",
+                ephemeral=True
+            )
+        
+        trigger = decrypt(record["trigger"])
+        command = decrypt(record["command"])
+
+        data = inter.client.db._traverse_dict(
+            inter.client._cmd_mapping_cache,
+            [inter.user.id ,trigger],
+            True
+        )
+
+        if data.get(trigger):
+            view = DuplicatedMappingView(
+                share_code=share_code,
+                command=command,
+                trigger=trigger,
+                author=inter.user
+            )
+
+            return await inter.response.send_message(
+                f"Trigger {trigger!r} already exists, so choose an option:",
+                view=view,
+                ephemeral=True
+            )
+
+        encrypted_trigger =  encrypt(trigger)
+
+        
+        insertion_query = """
+        INSERT INTO mappings(
+            user_id,
+            trigger,
+            command,
+            created_at
+        )
+        SELECT 
+            $1,
+            $2,
+            command,
+            $3
+        
+        FROM mappings 
+        WHERE 
+            share_code = $4; 
+        """
+
+        await conn.fetch(
+            insertion_query,
+            inter.user.id,
+            encrypted_trigger,
+            int(time()),
+            share_code
+        )
+
+        await inter.client.pool.release(conn)
+        
+        decrypted_trigger = decrypt(encrypted_trigger)
+        inter.client._cmd_mapping_cache[inter.user.id][decrypted_trigger] = command
+    
+        await inter.response.send_message(
+            f"**Added {decrypted_trigger!r} to your mappings**",
+            ephemeral=True
+        )
+
+class MappingImportSelectView(BaseView):
+    
+    def __init__(
+        self,
+        share_code: str
+    ):
+        
+        self.share_code = share_code
+        super().__init__(timeout=120)
+
+    @select(
+        options=[
+            SelectOption(
+                label="Import for guild",
+                value="guild"
+            ),
+            SelectOption(
+                label="Import for yourself",
+                value="user"
+            )
+        ]
+    )
+    async def import_for(
+        self,
+        inter: Interaction,
+        select: Select
+    ):
+        value      = select.values[0]
+        share_code = self.share_code
+
+        conn = await inter.client.pool.acquire()
+        if value == "user":
+
+            selection_query = """
+            SELECT * 
+            FROM mappings
+            WHERE share_code = $1;
+            """
+
+            record = await conn.fetchrow(
+                selection_query,
+                share_code
+            )
+
+            if not record:
+                await inter.client.pool.release(conn)
+                return await inter.response.send_message(
+                    "Didn't find any mapping",
+                    ephemeral=True
+                )
+            
+            trigger = decrypt(record["trigger"])
+            command = decrypt(record["command"])
+
+            data = inter.client.db._traverse_dict(
+                inter.client._cmd_mapping_cache,
+                [inter.user.id ,trigger],
+                True
+            )
+
+            if data.get(trigger):
+                view = DuplicatedMappingView(
+                    share_code=share_code,
+                    command=command,
+                    trigger=trigger,
+                    author=inter.user,
+                    import_type=value
+                )
+                await inter.client.pool.release(conn)
+                return await inter.response.edit_message(
+                    content=f"Trigger {trigger!r} already exists, so choose an option:",
+                    view=view,
+                )
+
+            encrypted_trigger = encrypt(trigger)
+
+            
+            insertion_query = """
+            INSERT INTO mappings(
+                user_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+
+            await conn.fetch(
+                insertion_query,
+                inter.user.id,
+                encrypted_trigger,
+                int(time()),
+                share_code
+            )
+
+            
+            decrypted_trigger = decrypt(encrypted_trigger)
+            inter.client._cmd_mapping_cache[inter.user.id][decrypted_trigger] = command
+        
+            await inter.response.edit_message(
+                content=f"**Added {decrypted_trigger!r} to your mappings**",
+            )
+        elif inter.guild and value == "guild" and inter.user.guild_permissions.manage_guild:
+            selection_query = """
+            SELECT * 
+            FROM mappings
+            WHERE share_code = $1;
+            """
+
+            record = await conn.fetchrow(
+                selection_query,
+                share_code
+            )
+
+            if not record:
+                await inter.client.pool.release(conn)
+                return await inter.response.send_message(
+                    "Didn't find any mapping",
+                    ephemeral=True
+                )
+            
+            trigger = decrypt(record["trigger"])
+            command = decrypt(record["command"])
+
+            data = inter.client.db._traverse_dict(
+                inter.client._cmd_mapping_cache,
+                [inter.user.id ,trigger],
+                True
+            )
+
+            if data.get(trigger):
+                view = DuplicatedMappingView(
+                    share_code=share_code,
+                    command=command,
+                    trigger=trigger,
+                    author=inter.user,
+                    import_type=value
+                )
+                await inter.client.pool.release(conn)
+                return await inter.response.edit_message(
+                    content=f"Trigger {trigger!r} already exists, so choose an option:",
+                    view=view,
+                )
+
+            encrypted_trigger = encrypt(trigger)
+
+            
+            insertion_query = """
+            INSERT INTO mappings(
+                guild_id,
+                trigger,
+                command,
+                created_at
+            )
+            SELECT 
+                $1,
+                $2,
+                command,
+                $3
+            
+            FROM mappings 
+            WHERE 
+                share_code = $4; 
+            """
+
+            await conn.fetch(
+                insertion_query,
+                inter.guild.id,
+                encrypted_trigger,
+                int(time()),
+                share_code
+            )
+
+            
+            decrypted_trigger = decrypt(encrypted_trigger)
+            inter.client._cmd_mapping_cache[inter.user.id][decrypted_trigger] = command
+        
+            await inter.response.edit_message(
+                f"**Added {decrypted_trigger!r} to mappings**",
+            )
+        
+        await inter.client.pool.release(conn)
+            
 
 class DynamicHelpView(Pagination):
 
     def __init__(
-            self,
-            client: commands.Bot,
-            prefix: Union[str, Sequence[str]],
-            bot_commands: Sequence[commands.Command],
-            cogs: Dict[str, commands.Cog],
-            ctx: Optional[commands.Context] = None,
-            interaction: Optional[Interaction] = None,
+        self,
+        client: commands.Bot,
+        prefix: Union[str, Sequence[str]],
+        bot_commands: Sequence[commands.Command],
+        cogs: Dict[str, commands.Cog],
+        ctx: Optional[commands.Context] = None,
+        interaction: Optional[Interaction] = None,
     ) -> None:
         
         main_embed = DynamicHelpEmbed(

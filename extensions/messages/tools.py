@@ -14,7 +14,7 @@ from bot.templates.flags import EmbedFlags
 from bot.templates.modals import WhisperModal
 from bot.templates.views import (DynamicHelpView, EmbedEditor, EmojisView,
                                  Pagination, WhisperModalView, WhisperView,
-                                 MappingView)
+                                 MappingView, DuplicatedMappingView, MappingsImportView)
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, decrypt, encrypt,
@@ -22,7 +22,7 @@ from bot.utils.functions import (chunker, decrypt, encrypt,
                                  get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings, find_command_name,
-                                 random_string, tuple_remove_item)
+                                 tuple_remove_item)
 from hashlib import md5
 
 if TYPE_CHECKING:
@@ -1179,6 +1179,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         new_trigger: str
     ):
         trigger = trigger.lower()
+        new_trigger = new_trigger.lower().replace(" ", "")[:20:]
 
         data = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
@@ -1291,7 +1292,6 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             selection_query,
             ctx.author.id,
             encrypted_trigger
-            
         )
         
         mapping_id = result["id"]
@@ -1318,14 +1318,25 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         await ctx.pool.release(conn)
 
+        embed = Embed(
+            description=f"**Here is a share code of the mapping {trigger!r}:** `{share_code}`",
+            color=ctx.client.color
+        )
+
+        embed.add_field(
+            name="💡 Tip",
+            value=f"Use `mappings import {share_code}` to add this mapping to your mappings"
+        )
+
+        view = MappingsImportView(
+            share_code
+        )
 
         await ctx.reply(
-            content=(
-                f"**Here is a share code of the mapping {trigger!r}:** `{share_code}` \n"
-                f"💡 *__Tip:__ Use `mappings import {share_code}` to add this mapping to your mappings*"
-            ),
-            allowed_mentions=AllowedMentions.none()
+            embed=embed,
+            view=view
         )
+        
         
 
     @mappings.command(
@@ -1366,14 +1377,29 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             [ctx.author.id ,trigger],
             True
         )
-
-        encrypted_trigger =  encrypt(trigger+random_string(5)) if data.get(trigger) else encrypt(trigger)
-
-
         if not await ctx.confirm(
             f"**Are you sure you want to import the mapping {trigger!r}?**"
         ):
             return
+
+        if data.get(trigger):
+            view = DuplicatedMappingView(
+                share_code=share_code,
+                command=command,
+                trigger=trigger,
+                author=ctx.author,
+                import_type="user"
+            )
+
+            return await ctx.reply(
+                f"Trigger {trigger!r} already exists, so choose an option:",
+                view=view,
+                allowed_mentions=AllowedMentions.none()
+            )
+
+        encrypted_trigger =  encrypt(trigger)
+
+
         
         insertion_query = """
         INSERT INTO mappings(
@@ -1405,18 +1431,457 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         
         decrypted_trigger = decrypt(encrypted_trigger)
         ctx.client._cmd_mapping_cache[ctx.author.id][decrypted_trigger] = command
-        print(ctx.client._cmd_mapping_cache)
         
         await ctx.reply(
             f"**Added {decrypted_trigger!r} to your mappings**",
             allowed_mentions=AllowedMentions.none()
         )
 
-    # TODO: Guild mappings.
-    # TODO: Fix mappings copy reply problem.
-    # TODO: Add prefixes delete / remove.
-    # TODO: Add fun category.
-    # TODO: Add CatFact command.
+    @mappings.group(
+        name="guild",
+        description="Displays a list of guild mappings",
+        aliases=["g", "server", "sv"],
+        fallback="list"
+    )
+    @app_commands.describe(
+        ephemeral = "Hide the bot's response from other users. (default: False)",
+    )
+    async def mappings_group(
+        self,
+        ctx: "XynusContext",
+        ephemeral: bool = False
+    ):
+        cached_items = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id],
+            True
+        ).get(ctx.guild.id, {})
+
+
+        if not cached_items:
+            return await ctx.reply("There is no mapping here yet!")
+
+
+        chunks = chunker(tuple(cached_items.items()), 10)
+
+        async def get_page(index: int):
+
+            s = 's' if len(cached_items) > 1 else ''
+            embed = Embed(
+                title=f"Total {len(cached_items)} mapping{s}",
+                color=ctx.client.color,
+                description="\n".join(
+                    [
+                        f"`[{(10*index)+i+1}]`: **`{key}`** - `{value[:20:]}"+f"{'...`' if len(value) > 20 else '`'}"
+
+                        for i, (key, value) in enumerate(chunks[index])
+                    ]
+                )
+            )
+            embed.set_footer(
+                icon_url=ctx.author.display_avatar,
+                text=f"Invoked by {ctx.author.display_name}"
+            )
+
+            kwargs = {
+                "embed": embed,
+            }
+            
+            return kwargs, len(chunks)
+
+        view = Pagination(get_page, ctx=ctx)
+        view.add_item(DeleteButton())
+
+        ctx.client.set_user_view(ctx.author.id, view)
+        await view.navegate(ephemeral=ephemeral)
+    
+    @mappings_group.command(
+        name="delete",
+        aliases=["remove", "del"],
+        description="Delete an existing mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that activates the mapping."
+    )
+    async def mappings_guild_delete(
+        self,
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        trigger = trigger.lower()
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id ,trigger],
+            True
+        )
+    
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        
+
+        query = """
+        DELETE FROM mappings
+        WHERE guild_id = $1
+        AND trigger = $2;
+        """
+        async with ctx.pool.acquire() as conn:
+            await conn.fetch(query, ctx.guild.id, encrypt(trigger))
+
+        # To prevent the Runtime error here,
+        # I made a copy of mappings to iterate
+        for key in tuple(ctx.client._cmd_mapping_cache[ctx.guild.id].keys()):
+            if key == trigger:
+                del ctx.client._cmd_mapping_cache[ctx.guild.id][trigger]
+
+        await ctx.reply(
+            embed=Embed(
+                description=f"Removed **{trigger!r}** from mappings",
+                color=ctx.client.color
+            ),
+            delete_button=True
+        )
+
+    @mappings_group.command(
+        name="clear",
+        aliases=["removeall"],
+        description="Delete all of guild mappings"
+    )
+    async def mappings_guild_clear(
+        self,
+        ctx: "XynusContext",
+    ):
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id],
+            True
+        ).get(ctx.guild.id)
+
+
+        if not data:
+            embed = Embed(
+                description=f"There is no mapping here yet!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        s, th = ('', 'this') if len(data.keys()) == 1 else ('s', 'these')
+        
+        if not await ctx.confirm(
+            "**Are you sure you want to remove "
+            f"{th} {len(data.keys())} mapping{s}?**"
+        ): 
+            return
+        
+
+        query = """
+        DELETE FROM mappings
+        WHERE
+            guild = $1;
+        """
+        async with ctx.pool.acquire() as conn:
+            await conn.fetch(query, ctx.guild.id)
+
+        # To prevent the Runtime error here,
+        # I made a copy of mappings to iterate
+        del ctx.client._cmd_mapping_cache[ctx.guild.id]
+
+        await ctx.reply(
+            embed=Embed(
+                description=f"Removed all mappings",
+                color=ctx.client.color
+            ),
+            delete_button=True
+        )
+
+
+    @mappings_group.command(
+        name="copy",
+        aliases=["cp"],
+        description="to copy one of guild mappings"
+    )
+    @app_commands.describe(
+        trigger="The trigger of the mapping that you want to copy",
+        new_trigger="The new trigger of the copied mapping"
+    )
+    async def mappings_guild_copy(
+        self,
+        ctx: "XynusContext",
+        trigger: str,
+        new_trigger: str
+    ):
+        trigger = trigger.lower()
+        new_trigger = new_trigger.lower().replace(" ", "")[:20:]
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id ,trigger],
+            True
+        )
+
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        if data.get(new_trigger):
+            return await ctx.reply(
+                f"The trigger {new_trigger[:10:]!r} already exists",
+                allowed_mentions=AllowedMentions.none()
+            )
+
+        query = """
+        INSERT INTO mappings (
+            trigger,
+            command,
+            guild_id,
+            created_at
+        )
+        SELECT 
+            $1, 
+            command, 
+            guild_id, 
+            $2
+        FROM mappings
+        WHERE 
+            trigger = $3
+        AND 
+            guild_id = $4;
+        """
+
+        async with ctx.pool.acquire() as conn:
+            await conn.fetch(
+                query,
+                encrypt(new_trigger),
+                int(time()),
+                encrypt(trigger),
+                ctx.guild.id
+            )
+        
+        ctx.client._cmd_mapping_cache[ctx.guild.id][new_trigger] = data.get(trigger)
+
+        embed = Embed(
+            color=ctx.client.color,
+            description=f"Created a copy of {trigger!r} with the trigger **{new_trigger!r}**."
+        )
+        embed.set_footer(
+            text=f"Invoked by {ctx.author.display_name}",
+            icon_url=ctx.author.display_avatar
+        )
+
+        await ctx.reply(
+            embed=embed,
+            delete_button=True
+        )
+
+    @mappings_group.command(
+        name="share",
+        description="to create a share code of your mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger of the mapping that you want to share"
+    )
+    async def mappings_guild_share(
+        self,
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id ,trigger],
+            True
+        )
+
+        if not data.get(trigger):
+            embed = Embed(
+                description=f"Didn't find any mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        conn = await ctx.pool.acquire()
+        encrypted_trigger = encrypt(trigger)
+
+        selection_query = """
+        SELECT id, share_code FROM mappings
+        WHERE 
+            guild_id = $1
+        AND   
+            trigger = $2;
+        """
+
+
+        result = await conn.fetchrow(
+            selection_query,
+            ctx.guild.id,
+            encrypted_trigger
+        )
+        
+        mapping_id = result["id"]
+        share_code = result["share_code"]
+        if not share_code:
+            share_code = md5(str(mapping_id).encode()).hexdigest()
+
+            insertion_query = """
+            UPDATE mappings
+            SET 
+                share_code = $1
+            WHERE
+                guild_id = $2
+            AND 
+                trigger = $3
+            """
+
+            await conn.fetch(
+                insertion_query,
+                share_code,
+                ctx.guild.id,
+                encrypted_trigger
+            )
+
+        await ctx.pool.release(conn)
+
+        embed = Embed(
+            description=f"**Here is a share code of the mapping {trigger!r}:** `{share_code}`",
+            color=ctx.client.color
+        )
+
+        embed.add_field(
+            name="💡 Tip",
+            value=f"Use `mappings import {share_code}` to add this mapping to your mappings"
+        )
+
+        view = MappingsImportView(
+            share_code
+        )
+
+        await ctx.reply(
+            embed=embed,
+            view=view
+        )
+        
+        
+
+    @mappings_group.command(
+        name="import",
+        description="to import a mapping by using its share code"
+    )
+    @app_commands.describe(
+        share_code="The share code that generated using 'mappings share' command"
+    )
+    async def mappings_guild_import(
+        self,
+        ctx: "XynusContext",
+        share_code: str
+    ):
+        
+        conn = await ctx.pool.acquire()
+
+        selection_query = """
+        SELECT * 
+        FROM mappings
+        WHERE share_code = $1;
+        """
+
+        record = await conn.fetchrow(
+            selection_query,
+            share_code
+        )
+
+        if not record:
+            await ctx.pool.release(conn)
+            return await ctx.reply("Didn't find any mapping")
+        
+        trigger = decrypt(record["trigger"])
+        command = decrypt(record["command"])
+
+        data = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.guild.id ,trigger],
+            True
+        )
+        if not await ctx.confirm(
+            f"**Are you sure you want to import the mapping {trigger!r}?**"
+        ):
+            return
+
+        if data.get(trigger):
+            view = DuplicatedMappingView(
+                share_code=share_code,
+                command=command,
+                trigger=trigger,
+                author=ctx.author,
+                import_type="guild"
+            )
+
+            return await ctx.reply(
+                f"Trigger {trigger!r} already exists, so choose an option:",
+                view=view,
+                allowed_mentions=AllowedMentions.none()
+            )
+
+        encrypted_trigger =  encrypt(trigger)
+
+
+        
+        insertion_query = """
+        INSERT INTO mappings(
+            guild_id,
+            trigger,
+            command,
+            created_at
+        )
+        SELECT 
+            $1,
+            $2,
+            command,
+            $3
+        
+        FROM mappings 
+        WHERE 
+            share_code = $4; 
+        """
+
+        await conn.fetch(
+            insertion_query,
+            ctx.guild.id,
+            encrypted_trigger,
+            int(time()),
+            share_code
+        )
+
+        await ctx.pool.release(conn)
+        
+        decrypted_trigger = decrypt(encrypted_trigger)
+        ctx.client._cmd_mapping_cache[ctx.guild.id][decrypted_trigger] = command
+        
+        await ctx.reply(
+            f"**Added {decrypted_trigger!r} to your mappings**",
+            allowed_mentions=AllowedMentions.none()
+        )
+    
     # TODO: ادد دادن یچیزی برای کامند هلپ که اگر زد "کمک مپینگ" کامند مپ شده پیدا کنه بده بهش
 
     @commands.hybrid_group(

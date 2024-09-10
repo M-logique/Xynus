@@ -737,7 +737,7 @@ class MappingImportSelectView(BaseView):
 
             
             decrypted_trigger = decrypt(encrypted_trigger)
-            inter.client._cmd_mapping_cache[inter.user.id][decrypted_trigger] = command
+            inter.client._cmd_mapping_cache[inter.guild.id][decrypted_trigger] = command
         
             await inter.response.edit_message(
                 content=f"**Added {decrypted_trigger!r} to mappings**",

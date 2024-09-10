@@ -195,7 +195,7 @@ class Xynus(_commands.AutoShardedBot):
             if hasattr(error, "message"):
                 text = error.message
             else:
-                text = err
+                text = error
 
         else: 
             err = str(error)

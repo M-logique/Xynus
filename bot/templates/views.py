@@ -1092,15 +1092,17 @@ class MappingView(BaseView):
         command: str,
         trigger: str,
         created_at: int,
-        mappings: commands.Command
+        mappings: commands.Command,
+        mode: Literal["guild", "user"]
     ):
         super().__init__(timeout=120)
         
-        self.mappings = mappings
+        self.mode       = mode
+        self.author     = author
+        self.command    = command
+        self.trigger    = trigger
+        self.mappings   = mappings
         self.created_at = created_at
-        self.command = command
-        self.trigger = trigger
-        self.author = author
 
         self.add_item(DeleteButton())
 
@@ -1120,6 +1122,7 @@ class MappingView(BaseView):
                 self.trigger,
                 self,
                 self.author,
+                self.mode
             )
         )
 
@@ -1131,11 +1134,13 @@ class MappingEditView(BaseView):
         trigger: str,
         prev_view: "MappingView",
         author: User,
+        mode: Literal["guild", "user"]
     ):
-        self.author = author
+        self.mode      = mode 
+        self.author    = author
+        self.command   = command
+        self.trigger   = trigger
         self.prev_view = prev_view
-        self.command = command
-        self.trigger = trigger
 
         super().__init__(timeout=120)
     
@@ -1161,7 +1166,8 @@ class MappingEditView(BaseView):
 
         if select.values[0] == "trigger":
             modal = TriggerEditModal(
-                self
+                self,
+                self.mode
             )
         
         elif select.values[0] == "command":
@@ -1190,14 +1196,39 @@ class MappingEditView(BaseView):
         btn: Button
     ):
         
-        user_cached_maps: Dict[str, Any] = inter.client.db._traverse_dict(
-            inter.client._cmd_mapping_cache,
-            keys=[inter.user.id],
-            create_missing=True
-        ).get(inter.user.id)
+        if self.mode == "user":
+            target_id = inter.user.id
+            query = """
+            UPDATE mappings
+            SET 
+                trigger = $1,
+                command = $2
+            WHERE 
+                user_id = $3
+            AND 
+                trigger = $4;
+            """
+        elif self.mode == "guild":
+            target_id = inter.guild.id
+            query = """
+            UPDATE mappings
+            SET 
+                trigger = $1,
+                command = $2
+            WHERE 
+                guild_id = $3
+            AND 
+                trigger = $4;
+            """
 
-        if len(tuple(user_cached_maps.items())) > 30 and \
-                not inter.client.is_owner(inter.user):
+        cached_maps: Dict[str, Any] = inter.client.db._traverse_dict(
+            inter.client._cmd_mapping_cache,
+            keys=[target_id],
+            create_missing=True
+        ).get(target_id)
+
+        if len(tuple(cached_maps.items())) > 30 and \
+                not await inter.client.is_owner(inter.user):
             embed = Embed(
                 description=f"Sorry but you can't add more than 30 mappings",
                 color=inter.client.color
@@ -1207,29 +1238,19 @@ class MappingEditView(BaseView):
                 delete_button=True
             )
 
-        del inter.client._cmd_mapping_cache[inter.user.id][self.prev_view.trigger]
+        del inter.client._cmd_mapping_cache[target_id][self.prev_view.trigger]
         prev_trigger = self.prev_view.trigger
         self.prev_view.trigger = self.trigger
         self.prev_view.command = self.command
-        inter.client._cmd_mapping_cache[inter.user.id][self.trigger] = self.command
+        inter.client._cmd_mapping_cache[target_id][self.trigger] = self.command
 
-        query = """
-        UPDATE mappings
-        SET 
-            trigger = $1,
-            command = $2
-        WHERE 
-            user_id = $3
-        AND 
-            trigger = $4;
-        """
 
         async with inter.client.pool.acquire() as conn:
             await conn.execute(
                 query, 
                 encrypt(self.trigger),
                 encrypt(self.command),
-                inter.user.id,
+                target_id,
                 encrypt(prev_trigger)
             )
 

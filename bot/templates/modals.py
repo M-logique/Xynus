@@ -75,7 +75,7 @@ class CommandEditModal(Modal, title="Edit the command"):
     )
 
     def __init__(self, prev_view: "MappingEditView", /):
-        self.prev_view = prev_view
+        self.prev_view       = prev_view
         self.command.default = prev_view.command
 
         super().__init__(timeout=120)
@@ -112,8 +112,9 @@ class TriggerEditModal(Modal, title="Edit the trigger"):
         required=True
     )
 
-    def __init__(self, prev_view: "MappingEditView", /):
-        self.prev_view = prev_view
+    def __init__(self, prev_view: "MappingEditView", mode: Literal["guild", "user"], /):
+        self.mode            = mode
+        self.prev_view       = prev_view
         self.trigger.default = prev_view.trigger
         
         super().__init__(timeout=120)
@@ -124,9 +125,15 @@ class TriggerEditModal(Modal, title="Edit the trigger"):
         sticked_command = interaction.client.get_command(trigger)
         original_message = None
 
+        if self.mode == "user":
+            target_id = interaction.user.id
+        elif self.mode == "guild":
+            target_id = interaction.guild.id
+
+
         data = interaction.client.db._traverse_dict(
             interaction.client._cmd_mapping_cache,
-            [interaction.user.id, trigger],
+            [target_id, trigger],
             True
         ).get(trigger, None)
 

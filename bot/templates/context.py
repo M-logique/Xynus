@@ -176,6 +176,11 @@ class XynusContext(commands.Context):
             del kwargs["delete_button"]
 
         try:
+            if isinstance(kwargs.get("view"), ViewWithDeleteButton):
+                msg = await super().send(content, **kwargs)
+                kwargs["view"].message = msg
+                return msg
+            
             return await super().send(content, **kwargs)
     
         except (Forbidden, HTTPException):

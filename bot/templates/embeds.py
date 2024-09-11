@@ -74,11 +74,9 @@ class CommandsEmbed(_Embed):
 
         for command in commands:
             
-            text_to_add = "\n__**{}{}{}{}**__: *`{}`*".format(
+            text_to_add = "\n__**{}{}**__: *`{}`*".format(
                 prefix,
-                f"{command.root_parent} " if command.root_parent else "",
-                f"{command.parent} " if command.parent and command.parent != command.root_parent else "",
-                command.name,
+                command.qualified_name,
                 command.description if command.description else "No description yet!"
             )
 
@@ -146,7 +144,6 @@ class CommandInfoEmbed(SimpleEmbed):
             self, 
             client: _commands.Bot, 
             command: _commands.Command,
-            prefix: list,
             full_name: str,
             **kwrgs
     ):
@@ -164,9 +161,19 @@ class CommandInfoEmbed(SimpleEmbed):
             value=" | ".join([f"`{alias}`" for alias in command.aliases]) if command.aliases else "`No aliases yet`"
         )
 
+
+        if command.usage:
+            self.add_field(
+                name="Usage",
+                value=f"```\n{command.usage}\n```",
+                inline=False
+            )
+
+
         self.add_field(
-            name="Usage",
-            value=f"`{prefix[0]}{full_name} {format_command_params(command)}`"
+            name="Syntax",
+            value=f"`{full_name} {format_command_params(command)}`",
+            inline=False
         )
 
 

@@ -27,6 +27,8 @@ from yaml import SafeLoader as _SafeLoader
 from yaml import load as _load
 from os import urandom as _urandom
 from binascii import hexlify as _hexlify
+from discord.ext import commands
+from inspect import Parameter
 
 from ..templates.exceptions import InvalidModalField
 
@@ -354,6 +356,42 @@ def find_command_args(text: str, prefixes: _Sequence[str], command_name: str, /)
     if text.lower().startswith(command_name.lower()):
         text = text[len(command_name):].strip()
     return text
+
+def generate_usage(
+    command: commands.Command[_Any, _Any, _Any],
+    flag_converter: type[commands.FlagConverter],
+) -> str:
+    # Get the name of the command
+    command_name = command.qualified_name
+
+    # Start the usage string with the command name
+    usage = f"{command_name}"
+
+    # Get the parameters of the command (excluding the `ctx` and `flags` parameters)
+    parameters: dict[str, commands.Parameter] = command.clean_params
+
+    flag_prefix = getattr(flag_converter, "__commands_flag_prefix__", "-")
+    flags: dict[str, commands.Flag] = flag_converter.get_flags()
+
+    # Add non-flag arguments to the usage string
+    for param_name, param in parameters.items():
+        # Ignore these parameters
+        if param_name in ["ctx", "flags"]:
+            continue
+        # Determine if the parameter is required
+        is_required = param.default == Parameter.empty
+        # Add the parameter to the usage string with required or optional wrapping
+        usage += f" [{param_name}]" if is_required else f" <{param_name}>"
+
+    # Add flag arguments to the usage string
+    for flag_name, flag_obj in flags.items():
+        # Determine if the flag is required or optional
+        if flag_obj.required:
+            usage += f" {flag_prefix}[{flag_name}]"
+        else:
+            usage += f" {flag_prefix}<{flag_name}>"
+    
+    return usage
 
 find_command_name = lambda text, /: _re.split(r'\s+', text.strip(), 1)[0].lower()
 

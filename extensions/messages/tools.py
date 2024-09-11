@@ -22,11 +22,12 @@ from bot.utils.functions import (chunker, decrypt, encrypt,
                                  get_all_commands,
                                  remove_duplicates_preserve_order,
                                  suggest_similar_strings, find_command_name,
-                                 tuple_remove_item)
+                                 tuple_remove_item, generate_usage)
 from hashlib import md5
 
 if TYPE_CHECKING:
     from bot.templates.context import XynusContext
+    from bot.core.client import Xynus
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -36,6 +37,11 @@ exclamation = _emojis.get("exclamation")
 
 class Tools(XynusCog, emoji=_emojis.get("tools")):
 
+    def __init__(self, client: "Xynus") -> None:
+
+        self.embed.usage = generate_usage(self.embed, EmbedFlags)
+
+        super().__init__(client)
     
     @commands.hybrid_command(
         name="steal",
@@ -541,16 +547,11 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
         commands = []
         commands_with_names = {}
 
-        full_name = lambda command: "{}{}{}".format(
-            f"{command.root_parent} " if command.root_parent else "",
-            f"{command.parent} " if command.parent and command.parent != command.root_parent else "",
-            command.name,
-        )
 
         for command in cog_commands: 
             commands+=[*command]
             for command in [*command]:
-                commands_with_names[full_name(command)] = command
+                commands_with_names[command.qualified_name] = command
         
         if cmd:
             similar_strings = suggest_similar_strings(
@@ -573,7 +574,6 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
                     self.client,
                     command=command,
                     full_name=name,
-                    prefix=prefix
                 )
 
 
@@ -932,7 +932,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     async def mappings_list(
         self,
         ctx: "XynusContext",
-        ephemeral: bool = False
+        ephemeral: Optional[bool] = False
     ):
 
         cached_items = ctx.db._traverse_dict(
@@ -983,7 +983,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @mappings.command(
         name="view",
         aliases=["info"],
-        description="Displays an some information about your mapping"
+        description="Displays some information about your mapping"
     )
     @app_commands.describe(
         trigger="The trigger phrase that activates mapping."
@@ -1041,7 +1041,8 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             command, 
             trigger, 
             created_at, 
-            self.mappings
+            self.mappings,
+            "user"
         )
 
         view.message = await ctx.reply(
@@ -1449,7 +1450,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     async def mappings_group(
         self,
         ctx: "XynusContext",
-        ephemeral: bool = False
+        ephemeral: Optional[bool] = False
     ):
         cached_items = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
@@ -1602,6 +1603,77 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
             embed=embed,
             delete_button=True
         )    
+
+    @mappings_group.command(
+        name="view",
+        aliases=["info"],
+        description="Displays some information about a mapping"
+    )
+    @app_commands.describe(
+        trigger="The trigger phrase that activates mapping."
+    )
+    async def mappings_guild_view(
+        self, 
+        ctx: "XynusContext",
+        trigger: str
+    ):
+        trigger = trigger.lower()
+
+        cached_command = ctx.db._traverse_dict(
+            ctx.client._cmd_mapping_cache,
+            [ctx.author.id, trigger],
+            True
+        ).get(trigger, None)
+
+        if not cached_command:
+            embed = Embed(
+                description=f"Didn't find any custom command mapping!",
+                color=ctx.client.color
+            )
+            return await ctx.reply(
+                embed=embed,
+                delete_button=True
+            )
+        
+        query = """
+        SELECT 
+            command, 
+            created_at
+        FROM 
+            mappings
+        WHERE 
+            trigger = $1
+        AND 
+            guild_id = $2;
+        """
+        async with ctx.pool.acquire() as conn:
+            record = await conn.fetchrow(query, encrypt(trigger), ctx.guild.id)
+
+        created_at = record["created_at"]
+        command = decrypt(record["command"])
+
+        embed = MappingInfoEmbed(
+            ctx,
+            trigger,
+            command,
+            created_at
+        )
+
+
+        view = MappingView(
+            ctx.author, 
+            command, 
+            trigger, 
+            created_at, 
+            self.mappings,
+            "guild"
+        )
+
+        view.message = await ctx.reply(
+            embed=embed,
+            view=view
+        )
+
 
     @mappings_group.command(
         name="delete",
@@ -2308,6 +2380,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
     @prefixes.group(
         name="guild",
         description="Retrives a list of available prefixes",
+        aliases=["g", "sv", "server"],
         fallback="list"
     )
     @commands.guild_only()
@@ -2548,7 +2621,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
 
     @commands.command(
-        description="Sends an embed using flags. An interactive embed maker is also available if you don't pass any flags."
+        description="Sends an embed using flags. An interactive embed maker is also available if you don't pass any flags.",
     )
     async def embed(
         self,

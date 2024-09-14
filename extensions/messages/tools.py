@@ -1621,7 +1621,7 @@ class Tools(XynusCog, emoji=_emojis.get("tools")):
 
         cached_command = ctx.db._traverse_dict(
             ctx.client._cmd_mapping_cache,
-            [ctx.author.id, trigger],
+            [ctx.guild.id, trigger],
             True
         ).get(trigger, None)
 

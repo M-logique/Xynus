@@ -37,5 +37,5 @@ Other Files:
 """
 
 
-__name__ = "bot"
-__version__ = "1.5.4" 
+__name__ = "Xynus"
+__version__ = "0.5.4" 

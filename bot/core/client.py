@@ -431,8 +431,11 @@ class Xynus(_commands.AutoShardedBot):
             self.db = KVDatabase(await self.pool.acquire())
             await self.db._setup()
             
-            setup_query = self._load_query("setup.sql")
-            await self.pool.execute(setup_query)
+            with open("./schema.sql", "r") as fp:
+                schema = fp.read().strip()
+            
+            
+            await self.pool.execute(schema)
 
             
 
@@ -478,23 +481,7 @@ class Xynus(_commands.AutoShardedBot):
         
         self.views[user_id] = view
 
-    def _load_query(
-            self,
-            name: str, 
-            /
-    ) -> str:
-        """Load an SQL query from a file.
 
-        :param name: The name of the SQL file containing the query.
-        :type name: str
-        :return: The SQL query as a string.
-        :rtype: str
-        """
-
-
-        base_path = "./sql/"
-        with open(base_path+name) as file:
-            return file.read().strip()
         
 
     @_cached_property

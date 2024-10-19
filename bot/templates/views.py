@@ -26,7 +26,7 @@ from bot import __version__ as version
 
 from .embeds import ErrorEmbed, MappingInfoEmbed
 from ..utils.config import Emojis
-from ..utils.database import KVDatabase
+from kv.kvpostgres import KVDatabase
 from ..utils.functions import chunker as _chunker
 from ..utils.functions import decrypt
 from ..utils.functions import disable_all_items as _disable_all_items

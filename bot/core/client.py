@@ -25,7 +25,7 @@ from .. import __version__ as version
 from ..handlers.errorhandler import XynusExceptionManager
 from ..templates.context import XynusContext
 from ..templates.embeds import ErrorEmbed
-from ..utils.database import KVDatabase
+from kv.kvpostgres import KVDatabase
 from ..utils.functions import (decrypt, find_command_args,
                                find_command_args_list, find_command_name,
                                list_all_dirs, match_and_remove_prefix,

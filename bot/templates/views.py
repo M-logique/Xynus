@@ -2,8 +2,9 @@ from asyncio import sleep
 from copy import deepcopy
 from re import search as _search
 from string import Template
-from typing import (TYPE_CHECKING, Any, Callable, Dict, Optional, Self,
-                    Sequence, Union)
+from time import time
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Literal, Optional,
+                    Self, Sequence, Union)
 
 from aiohttp import ClientSession
 from asyncpg import Pool
@@ -23,25 +24,23 @@ from discord.ui import button, select
 from discord.ui.item import Item
 
 from bot import __version__ as version
-
-from .embeds import ErrorEmbed, MappingInfoEmbed
-from ..utils.config import Emojis
 from kv.kvpostgres import KVDatabase
+
+from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker
 from ..utils.functions import decrypt
 from ..utils.functions import disable_all_items as _disable_all_items
-from ..utils.functions import encrypt, random_string
+from ..utils.functions import encrypt
 from ..utils.functions import get_all_commands as _get_all_commands
+from ..utils.functions import random_string
 from .buttons import DeleteButton, EditWithModalButton
 from .cooldowns import ticket_edit_cooldown
-from .embeds import CommandsEmbed, DynamicHelpEmbed
+from .embeds import (CommandsEmbed, DynamicHelpEmbed, ErrorEmbed,
+                     MappingInfoEmbed)
 from .exceptions import CustomOnCooldownException
-from .modals import (AddFieldModal, EditAuthorModal, EditEmbedModal,
-                     EditFieldModal, EditFooterModal, LoadMessageModal, 
-                     CommandEditModal, TriggerEditModal, CustomTriggerModal)
-from time import time
-from typing import Literal
-
+from .modals import (AddFieldModal, CommandEditModal, CustomTriggerModal,
+                     EditAuthorModal, EditEmbedModal, EditFieldModal,
+                     EditFooterModal, LoadMessageModal, TriggerEditModal)
 
 if TYPE_CHECKING:
 

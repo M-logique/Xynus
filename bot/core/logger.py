@@ -1,7 +1,7 @@
 import logging as _logging
+from typing import Union
 
 from colorlog import ColoredFormatter as _ColoredFormatter
-from typing import Union
 
 __all__: (
     "XynusLogger"

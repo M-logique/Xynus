@@ -1,33 +1,36 @@
+from hashlib import md5
 from time import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from aiohttp import ClientSession
-from discord import Embed, Interaction, Member, Role, app_commands, utils, AllowedMentions
+from discord import (AllowedMentions, Embed, Interaction, Member, Role,
+                     app_commands, utils)
 from discord.errors import Forbidden, HTTPException
 from discord.ext import commands
 
 from bot.templates.autocomplete import help_autocomplete
 from bot.templates.buttons import DeleteButton
 from bot.templates.cogs import XynusCog
-from bot.templates.embeds import CommandInfoEmbed, CommandsEmbed, SimpleEmbed, MappingInfoEmbed
+from bot.templates.embeds import (CommandInfoEmbed, CommandsEmbed,
+                                  MappingInfoEmbed, SimpleEmbed)
 from bot.templates.flags import EmbedFlags
 from bot.templates.modals import WhisperModal
-from bot.templates.views import (DynamicHelpView, EmbedEditor, EmojisView,
-                                 Pagination, WhisperModalView, WhisperView,
-                                 MappingView, DuplicatedMappingView, MappingsImportView)
+from bot.templates.views import (DuplicatedMappingView, DynamicHelpView,
+                                 EmbedEditor, EmojisView, MappingsImportView,
+                                 MappingView, Pagination, WhisperModalView,
+                                 WhisperView)
 from bot.templates.wrappers import check_views, check_views_interaction
 from bot.utils.config import Emojis
 from bot.utils.functions import (chunker, decrypt, encrypt,
                                  extract_emoji_info_from_text, filter_prefix,
+                                 find_command_name, generate_usage,
                                  get_all_commands,
                                  remove_duplicates_preserve_order,
-                                 suggest_similar_strings, find_command_name,
-                                 tuple_remove_item, generate_usage)
-from hashlib import md5
+                                 suggest_similar_strings, tuple_remove_item)
 
 if TYPE_CHECKING:
-    from bot.templates.context import XynusContext
     from bot.core.client import Xynus
+    from bot.templates.context import XynusContext
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")

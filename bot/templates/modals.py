@@ -1,19 +1,18 @@
 from re import compile, match
 from time import time
-from typing import TYPE_CHECKING, Self, Literal
+from typing import TYPE_CHECKING, Literal, Self
 
 from discord import (Color, Embed, Forbidden, HTTPException, Interaction,
                      Message, NotFound, TextStyle, User)
 from discord.ui import Modal, TextInput, View
 
-from .embeds import MappingInfoEmbed
 from ..utils.config import Emojis
-from ..utils.functions import to_boolean, find_command_name, encrypt, decrypt
+from ..utils.functions import decrypt, encrypt, find_command_name, to_boolean
+from .embeds import MappingInfoEmbed
 from .exceptions import InvalidModalField
 
 if TYPE_CHECKING:
-    from .views import EmbedEditor
-    from .views import MappingEditView
+    from .views import EmbedEditor, MappingEditView
 
 _emojis = Emojis()
 checkmark = _emojis.get("checkmark")
@@ -153,8 +152,8 @@ class TriggerEditModal(Modal, title="Edit the trigger"):
             
             
             else:
-                from .views import ConfirmationView
                 from .embeds import ConfirmationEmbed
+                from .views import ConfirmationView
 
                 view = ConfirmationView(
                     interaction, 

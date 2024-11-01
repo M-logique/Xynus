@@ -34,6 +34,9 @@ jobs:
             git add -A
 
             
+            latest_commit_message=$(git log -1 --pretty=%B)
+
             if ! git diff --cached --quiet; then
-                git commit -a -m "Sorted imports"
+                git commit -a -m "Sorted import for commit: $latest_commit_message"
+                git push
             fi

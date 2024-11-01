@@ -22,9 +22,9 @@ from discord.ui import Select as _Select
 from discord.ui import View as _View
 from discord.ui import button, select
 from discord.ui.item import Item
+from kv.kvpostgres import KVDatabase
 
 from bot import __version__ as version
-from kv.kvpostgres import KVDatabase
 
 from ..utils.config import Emojis
 from ..utils.functions import chunker as _chunker

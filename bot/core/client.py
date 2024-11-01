@@ -21,7 +21,6 @@ from discord import Interaction, Message, Status
 from discord import utils as _utils
 from discord.ext import commands as _commands
 from discord.utils import cached_property as _cached_property
-
 from kv.kvpostgres import KVDatabase
 
 from .. import __version__ as version

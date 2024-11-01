@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 __all__: Tuple[str, ...] = (
-    "Xynus"
+    "Xynus",
 )
 
 XCT = TypeVar("XCT", bound="XynusContext")

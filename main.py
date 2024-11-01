@@ -1,7 +1,6 @@
 from argparse import ArgumentParser
 
 import discord
-from discord import AllowedMentions, Intents
 
 from bot.core import Xynus
 

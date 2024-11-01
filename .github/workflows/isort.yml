@@ -38,4 +38,4 @@ jobs:
     
             if git stash list | grep -q 'stash@{0}'; then git stash pop; fi
     
-            git diff --cached --exit-code || (git add -A && git commit -m "Sorted imports" && git push)
+            git diff --cached --exit-code || (git add -A && git commit -a -m "Sorted imports" && git push)

@@ -15,9 +15,9 @@ from asyncpg import Connection, Pool, create_pool
 from discord import Activity as _Activity
 from discord import ActivityType as _ActivityType
 from discord import Color as _Color
-from discord import Forbidden as _Forbidden
 from discord import HTTPException as _HTTPException
 from discord import Interaction, Message, Status
+from discord import Forbidden as _Forbidden
 from discord import utils as _utils
 from discord.ext import commands as _commands
 from discord.utils import cached_property as _cached_property
